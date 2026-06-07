@@ -1,0 +1,32 @@
+# Render Blueprint — deploy with "New + → Blueprint" pointing at this repo.
+# NOTE: use a PAID plan (starter or higher) so the service stays awake 24/7.
+#       Free instances sleep after ~15 min idle and will MISS scheduled runs.
+services:
+  - type: web
+    name: avatar-studio
+    runtime: docker
+    plan: starter            # do NOT use "free" if you need 24/7 cron
+    autoDeploy: true
+    healthCheckPath: /
+    envVars:
+      - key: HEADLESS
+        value: "true"
+      - key: TZ                       # container timezone (cron fallback)
+        value: UTC
+      - key: SCHEDULE_TZ              # default schedule timezone
+        value: UTC
+      - key: NODE_ENV
+        value: production
+      # ---- set these as SECRETS in the Render dashboard ----
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: YT_CLIENT_ID
+        sync: false
+      - key: YT_CLIENT_SECRET
+        sync: false
+      - key: YT_REDIRECT_URI          # https://<your-service>.onrender.com/api/youtube/oauth/callback
+        sync: false

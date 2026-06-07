@@ -1,0 +1,55 @@
+# ─── Dependencies ───────────────────────────────
+node_modules/
+.npm/
+.pnp/
+.pnp.js
+
+# ─── Secrets / env ──────────────────────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ─── Auth / session data (NEVER commit) ─────────
+cookies.json
+youtube_cookies/
+*.cookies.json
+
+# ─── Generated media & artifacts ────────────────
+downloads/
+outputs/
+branding_assets/
+*.mp4
+*.mov
+*.webm
+yt-error-*.png
+*-error-*.png
+screenshot*.png
+
+# ─── Logs ───────────────────────────────────────
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ─── Playwright ─────────────────────────────────
+test-results/
+playwright-report/
+playwright/.cache/
+.last-run.json
+
+# ─── OS / editor junk ───────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+*~
+
+# ─── Misc ───────────────────────────────────────
+.cache/
+tmp/
+coverage/
