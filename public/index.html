@@ -1,0 +1,1706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TikTok Avatar Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a0b;--surface:#111114;--surface2:#18181d;--surface3:#1e1e25;
+  --border:#242430;--border2:#2e2e3c;
+  --accent:#ff2d55;--accent2:#ff6b35;
+  --green:#00e676;--yellow:#ffd600;--red:#ff1744;
+  --blue:#2979ff;--purple:#aa00ff;--cyan:#00e5ff;
+  --orange:#ff6b35;
+  --text:#e8e8f0;--muted:#666680;
+  --mono:"IBM Plex Mono",monospace;--sans:"IBM Plex Sans",sans-serif;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px}
+/* SHELL */
+.shell{display:grid;grid-template-rows:56px 1fr;height:100vh}
+header{display:flex;align-items:center;justify-content:space-between;padding:0 24px;border-bottom:1px solid var(--border);background:var(--surface)}
+.logo{font-family:var(--mono);font-size:13px;letter-spacing:.1em;color:var(--accent)}
+.logo span{color:var(--muted)}
+.nav-tabs{display:flex;gap:2px}
+.tab{padding:8px 18px;border:none;background:none;cursor:pointer;font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--muted);border-bottom:2px solid transparent;transition:color .15s,border-color .15s}
+.tab.active{color:var(--text);border-color:var(--accent)}
+.tab:hover:not(.active){color:var(--text)}
+.main{display:grid;grid-template-columns:300px 1fr;overflow:hidden}
+/* SIDEBAR */
+.sidebar{border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;background:var(--surface)}
+.sidebar-head{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.sidebar-head h2{font-size:10px;letter-spacing:.12em;color:var(--muted);font-family:var(--mono);text-transform:uppercase}
+.btn-add{display:flex;align-items:center;gap:5px;padding:5px 10px;background:var(--accent);border:none;color:#fff;font-family:var(--mono);font-size:10px;cursor:pointer;letter-spacing:.06em;transition:opacity .15s}
+.btn-add:hover{opacity:.85}
+.client-list{flex:1;overflow-y:auto;padding:6px 0}
+.client-item{display:flex;align-items:center;gap:9px;padding:10px 16px;cursor:pointer;border-left:3px solid transparent;transition:background .12s,border-color .12s}
+.client-item:hover{background:var(--surface2)}
+.client-item.active{background:var(--surface2);border-color:var(--accent)}
+.client-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:13px;font-weight:600;flex-shrink:0}
+.client-info{flex:1;min-width:0}
+.client-name{font-weight:600;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.client-sub{font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:2px;display:flex;align-items:center;gap:5px}
+.rss-chip{font-size:8px;padding:1px 4px;background:rgba(41,121,255,.15);color:var(--blue);border:1px solid rgba(41,121,255,.25)}
+.cal-chip{font-size:8px;padding:1px 4px;background:rgba(0,229,255,.12);color:var(--cyan);border:1px solid rgba(0,229,255,.2)}
+.brand-chip{font-size:8px;padding:1px 4px;background:rgba(255,107,53,.12);color:var(--orange);border:1px solid rgba(255,107,53,.2)}
+.status-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;background:var(--border2)}
+.status-dot.running{background:var(--yellow);box-shadow:0 0 5px var(--yellow);animation:pulse 1s infinite}
+.status-dot.done{background:var(--green)}
+.status-dot.failed{background:var(--red)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+/* CONTENT */
+.content{overflow-y:auto;padding:28px;display:flex;flex-direction:column;gap:20px}
+.page{display:none}
+.page.active{display:flex;flex-direction:column;gap:20px}
+/* CARDS */
+.card{background:var(--surface);border:1px solid var(--border);padding:20px}
+.card-title{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.card-title::after{content:"";flex:1;height:1px;background:var(--border)}
+/* FORMS */
+.form-grid{display:grid;gap:14px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.field{display:flex;flex-direction:column;gap:5px}
+label{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+input,textarea,select{background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:9px 12px;font-family:var(--mono);font-size:11px;outline:none;resize:vertical;transition:border-color .15s;appearance:none}
+input:focus,textarea:focus,select:focus{border-color:var(--accent)}
+textarea{min-height:90px;line-height:1.6}
+select{cursor:pointer}
+/* BUTTONS */
+.btn{padding:9px 18px;border:none;cursor:pointer;font-family:var(--mono);font-size:11px;letter-spacing:.06em;transition:opacity .15s,transform .1s}
+.btn:active{transform:scale(.97)}
+.btn:hover{opacity:.85}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border2)}
+.btn-danger{background:#1a0005;color:var(--red);border:1px solid #3a0010}
+.btn-outline{background:transparent;border:1px solid var(--border2);color:var(--muted)}
+.btn-outline:hover{border-color:var(--text);color:var(--text)}
+.icon-btn{display:flex;align-items:center;gap:6px;padding:8px 16px;border:none;cursor:pointer;font-family:var(--mono);font-size:11px;letter-spacing:.06em;transition:background .15s,transform .1s}
+.icon-btn:active{transform:scale(.97)}
+.icon-btn.green{color:var(--green);border:1px solid var(--green);background:transparent}
+.icon-btn.green:hover{background:rgba(0,230,118,.08)}
+.icon-btn.blue{color:var(--blue);border:1px solid var(--blue);background:transparent}
+.icon-btn.blue:hover{background:rgba(41,121,255,.08)}
+.icon-btn.cyan{color:var(--cyan);border:1px solid var(--cyan);background:transparent}
+.icon-btn.cyan:hover{background:rgba(0,229,255,.08)}
+.icon-btn.orange{color:var(--orange);border:1px solid var(--orange);background:transparent}
+.icon-btn.orange:hover{background:rgba(255,107,53,.08)}
+.icon-btn:disabled{opacity:.35;cursor:not-allowed;transform:none}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+/* DETAIL HEADER */
+.detail-header{display:flex;align-items:center;gap:14px;padding-bottom:20px;border-bottom:1px solid var(--border)}
+.detail-avatar{width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:20px;font-weight:700;flex-shrink:0}
+.detail-meta h1{font-size:20px;font-weight:600}
+.detail-meta p{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:3px}
+/* FEED LIST */
+.feed-list{display:flex;flex-direction:column;gap:8px}
+.feed-row{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface2);border:1px solid var(--border)}
+.feed-cat-badge{font-family:var(--mono);font-size:9px;padding:2px 6px;letter-spacing:.05em;white-space:nowrap}
+.feed-cat-badge.us-news{background:rgba(255,45,85,.1);color:var(--accent);border:1px solid rgba(255,45,85,.2)}
+.feed-cat-badge.politics{background:rgba(170,0,255,.1);color:var(--purple);border:1px solid rgba(170,0,255,.2)}
+.feed-cat-badge.world{background:rgba(0,230,118,.1);color:var(--green);border:1px solid rgba(0,230,118,.2)}
+.feed-cat-badge.technology{background:rgba(41,121,255,.1);color:var(--blue);border:1px solid rgba(41,121,255,.2)}
+.feed-cat-badge.finance{background:rgba(255,214,0,.1);color:var(--yellow);border:1px solid rgba(255,214,0,.2)}
+.feed-cat-badge.entertainment{background:rgba(255,107,53,.1);color:var(--accent2);border:1px solid rgba(255,107,53,.2)}
+.feed-cat-badge.sports{background:rgba(0,229,255,.1);color:var(--cyan);border:1px solid rgba(0,229,255,.2)}
+.feed-cat-badge.science,.feed-cat-badge.health{background:rgba(0,230,118,.08);color:#69f0ae;border:1px solid rgba(0,230,118,.15)}
+.feed-cat-badge.india{background:rgba(255,152,0,.1);color:#ffb74d;border:1px solid rgba(255,152,0,.2)}
+.feed-cat-badge.crypto{background:rgba(255,214,0,.08);color:#ffe57f;border:1px solid rgba(255,214,0,.15)}
+.feed-label{flex:1;font-family:var(--mono);font-size:10px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.feed-url{font-family:var(--mono);font-size:9px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
+.feed-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:0 4px;transition:color .1s;flex-shrink:0}
+.feed-del:hover{color:var(--red)}
+/* VIDEO GRID */
+.video-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+.video-card{background:var(--surface2);border:1px solid var(--border);overflow:hidden;display:flex;flex-direction:column}
+.video-thumb{width:100%;aspect-ratio:9/16;background:#000;display:flex;align-items:center;justify-content:center}
+.video-thumb video{width:100%;height:100%;object-fit:cover}
+.video-thumb .no-video{font-family:var(--mono);font-size:10px;color:var(--muted)}
+.video-status-bar{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;font-family:var(--mono);font-size:9px;border-top:1px solid var(--border)}
+.badge{padding:2px 6px;font-family:var(--mono);font-size:9px;letter-spacing:.06em;text-transform:uppercase}
+.badge.running{background:rgba(255,214,0,.12);color:var(--yellow);border:1px solid rgba(255,214,0,.3)}
+.badge.done{background:rgba(0,230,118,.1);color:var(--green);border:1px solid rgba(0,230,118,.25)}
+.badge.failed{background:rgba(255,23,68,.1);color:var(--red);border:1px solid rgba(255,23,68,.25)}
+.badge.pending{background:rgba(255,255,255,.05);color:var(--muted);border:1px solid var(--border2)}
+.video-dl{display:block;padding:7px 10px;text-align:center;background:rgba(0,230,118,.07);color:var(--green);font-family:var(--mono);font-size:9px;text-decoration:none;border-top:1px solid rgba(0,230,118,.14);transition:background .15s}
+.video-dl:hover{background:rgba(0,230,118,.15)}
+/* TERMINAL */
+.terminal{background:#050507;border:1px solid var(--border);padding:14px;font-family:var(--mono);font-size:10px;line-height:1.8;max-height:300px;overflow-y:auto;color:#8a8ab0}
+.log-line{display:flex;gap:10px}
+.log-time{color:var(--border2);flex-shrink:0}
+.log-msg{color:#b0b0cc}
+.log-msg.success{color:var(--green)}
+.log-msg.error{color:var(--red)}
+.log-msg.rss{color:var(--purple)}
+.log-msg.info{color:var(--blue)}
+.log-msg.brand{color:var(--orange)}
+/* EMPTY */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:48px 20px;color:var(--muted);font-family:var(--mono);font-size:11px;text-align:center}
+.empty-icon{font-size:30px;opacity:.3}
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;z-index:100;opacity:0;pointer-events:none;transition:opacity .2s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--surface);border:1px solid var(--border2);padding:28px;width:600px;max-width:96vw;max-height:90vh;overflow-y:auto;transform:translateY(14px);transition:transform .2s}
+.modal-overlay.open .modal{transform:translateY(0)}
+.modal-title{font-family:var(--mono);font-size:12px;letter-spacing:.08em;margin-bottom:20px;color:var(--text)}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
+/* SECTION DIVIDER */
+.sec-div{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--blue);text-transform:uppercase;margin:6px 0}
+.sec-div::before,.sec-div::after{content:"";flex:1;height:1px;background:rgba(41,121,255,.2)}
+.sec-div.orange{color:var(--orange)}
+.sec-div.orange::before,.sec-div.orange::after{background:rgba(255,107,53,.2)}
+/* ── BRANDING PANEL ──────────────────────────────────────── */
+.branding-panel{display:grid;gap:12px}
+.branding-asset-row{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--surface2);border:1px solid var(--border)}
+.branding-asset-row.has-asset{border-color:rgba(255,107,53,.3);background:rgba(255,107,53,.04)}
+.branding-asset-icon{width:48px;height:48px;border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;overflow:hidden}
+.branding-asset-icon img{width:100%;height:100%;object-fit:cover}
+.branding-asset-info{flex:1;min-width:0}
+.branding-asset-label{font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px}
+.branding-asset-value{font-family:var(--mono);font-size:10px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.branding-asset-value.empty-val{color:var(--muted);font-style:italic}
+.branding-asset-hint{font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:3px;line-height:1.4}
+.branding-asset-actions{display:flex;gap:6px;flex-shrink:0}
+/* upload drop zone */
+.drop-zone{border:1px dashed var(--border2);padding:18px;text-align:center;cursor:pointer;font-family:var(--mono);font-size:10px;color:var(--muted);transition:border-color .15s,background .15s;position:relative}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--orange);background:rgba(255,107,53,.04);color:var(--text)}
+.drop-zone-icon{font-size:24px;margin-bottom:6px;opacity:.5}
+/* branding preview strip in client detail */
+.branding-strip{display:flex;align-items:center;gap:16px;padding:12px 14px;background:rgba(255,107,53,.04);border:1px solid rgba(255,107,53,.18)}
+.branding-preview-item{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:9px;color:var(--muted)}
+.branding-preview-item.active{color:var(--orange)}
+.branding-preview-item .pip{width:7px;height:7px;border-radius:50%;background:var(--border2);flex-shrink:0}
+.branding-preview-item.active .pip{background:var(--orange);box-shadow:0 0 5px rgba(255,107,53,.6)}
+.branding-overlay-thumb{width:36px;height:36px;border:1px solid var(--border2);object-fit:cover;background:#000}
+/* ── CALENDAR ──────────────────────────────────────────────────── */
+.cal-controls{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.cal-month-label{font-family:var(--mono);font-size:12px;color:var(--text);letter-spacing:.06em;flex:1}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-day-header{font-family:var(--mono);font-size:9px;color:var(--muted);text-align:center;padding:4px;letter-spacing:.06em}
+.cal-day{background:var(--surface2);border:1px solid var(--border);padding:6px;min-height:72px;cursor:pointer;transition:border-color .12s,background .12s;position:relative;display:flex;flex-direction:column;gap:3px}
+.cal-day:hover{border-color:var(--border2);background:var(--surface3)}
+.cal-day.today{border-color:rgba(41,121,255,.4)}
+.cal-day.empty-day{background:transparent;border-color:transparent;cursor:default}
+.cal-day.has-entry.idea{border-left:2px solid var(--muted)}
+.cal-day.has-entry.ready{border-left:2px solid var(--green)}
+.cal-day.has-entry.used{border-left:2px solid var(--blue)}
+.cal-date{font-family:var(--mono);font-size:9px;color:var(--muted)}
+.cal-day.today .cal-date{color:var(--blue);font-weight:600}
+.cal-topic{font-size:9px;color:var(--text);line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.cal-status-pip{width:5px;height:5px;border-radius:50%;margin-top:auto;align-self:flex-end}
+.cal-status-pip.idea{background:var(--muted)}
+.cal-status-pip.ready{background:var(--green)}
+.cal-status-pip.used{background:var(--blue)}
+/* CALENDAR ENTRY MODAL */
+.cal-modal .modal{width:680px}
+/* RSS PREVIEW MODAL */
+.rss-preview-modal .modal{width:760px}
+.preview-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-top:4px}
+.preview-card{background:var(--surface2);border:1px solid var(--border);padding:16px;display:flex;flex-direction:column;gap:10px;cursor:pointer;transition:border-color .15s}
+.preview-card:hover{border-color:var(--blue)}
+.preview-card.selected{border-color:var(--blue);background:rgba(41,121,255,.05)}
+.preview-feed-label{font-family:var(--mono);font-size:9px;color:var(--blue);letter-spacing:.06em}
+.preview-headline{font-size:11px;font-weight:600;line-height:1.4;color:var(--text)}
+.preview-script{font-family:var(--mono);font-size:10px;color:var(--muted);line-height:1.6;max-height:140px;overflow-y:auto;border-top:1px solid var(--border);padding-top:8px;white-space:pre-wrap}
+.preview-word-count{font-family:var(--mono);font-size:9px;color:var(--muted)}
+/* LOADING OVERLAY */
+.loading-overlay{position:absolute;inset:0;background:rgba(10,10,11,.85);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:10;font-family:var(--mono);font-size:11px;color:var(--muted)}
+/* SPINNERS */
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{width:13px;height:13px;border:2px solid rgba(0,230,118,.2);border-top-color:var(--green);border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
+.spinner-blue{width:13px;height:13px;border:2px solid rgba(41,121,255,.2);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
+.spinner-lg{width:28px;height:28px;border:3px solid rgba(41,121,255,.15);border-top-color:var(--blue);border-radius:50%;animation:spin .9s linear infinite}
+/* SCROLLBAR */
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border2)}
+/* ALL-VIDEOS */
+.all-videos-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+/* upload progress bar */
+.upload-progress{height:2px;background:var(--border);margin-top:6px;display:none}
+.upload-progress-bar{height:100%;background:var(--orange);width:0%;transition:width .2s}
+</style>
+</head>
+<body>
+<div class="shell">
+  <header>
+    <div class="logo">AVATAR<span>/</span>STUDIO</div>
+    <div class="nav-tabs">
+      <button class="tab active" onclick="switchTab('clients')">CLIENTS</button>
+      <button class="tab" onclick="switchTab('videos')">ALL VIDEOS</button>
+      <button class="tab" onclick="switchTab('activity')">ACTIVITY</button>
+    </div>
+    <div style="width:100px"></div>
+  </header>
+  <div class="main">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-head">
+        <h2>Clients</h2>
+        <button class="btn-add" onclick="openClientModal()">+ NEW</button>
+      </div>
+      <div class="client-list" id="clientList"></div>
+    </aside>
+    <!-- CONTENT -->
+    <main class="content">
+      <!-- CLIENTS TAB -->
+      <div class="page active" id="page-clients">
+        <div id="welcomeState">
+          <div class="empty"><div class="empty-icon">◈</div><p>Select a client or create a new one</p></div>
+        </div>
+        <div id="clientDetail" style="display:none;flex-direction:column;gap:20px;">
+          <!-- Header -->
+          <div class="detail-header">
+            <div class="detail-avatar" id="detailAvatar"></div>
+            <div class="detail-meta"><h1 id="detailName"></h1><p id="detailAvatarId"></p></div>
+          </div>
+          <!-- Actions -->
+          <div class="card">
+            <div class="card-title">Generate Video</div>
+            <div class="btn-row">
+              <button class="icon-btn green" id="runBtn" onclick="manualRun()"><span>▶</span> RUN SCRIPT</button>
+              <button class="icon-btn blue" id="rssBtn" onclick="openRssPreview()"><span>📡</span> RSS AUTO-RUN</button>
+              <button class="icon-btn cyan" onclick="openCalendarView()"><span>📅</span> CONTENT CALENDAR</button>
+              <button class="icon-btn orange" onclick="openBrandingModal()"><span>🎨</span> BRANDING</button>
+              <button class="icon-btn" style="border-color:rgba(255,0,0,.4);color:#ff4d4d" onclick="openYoutubeModal()"><span>▶</span> YOUTUBE</button>
+              <button class="icon-btn" style="border-color:rgba(120,170,255,.5);color:#7aa8ff" onclick="openScheduleModal()"><span>⏰</span> SCHEDULE</button>
+              <button class="btn btn-secondary" onclick="openClientModal(true)">Edit</button>
+              <button class="btn btn-danger" onclick="deleteClient()">Delete</button>
+            </div>
+          </div>
+          <!-- Branding status strip -->
+          <div class="card" id="brandingCard">
+            <div class="card-title">Branding</div>
+            <div id="brandingStrip"></div>
+          </div>
+          <!-- YouTube status strip -->
+          <div class="card" id="youtubeCard">
+            <div class="card-title">YouTube Auto-Upload</div>
+            <div id="youtubeStrip"></div>
+          </div>
+          <!-- Schedule status strip -->
+          <div class="card" id="scheduleCard">
+            <div class="card-title">Daily Auto-Schedule</div>
+            <div id="scheduleStrip"></div>
+          </div>
+          <!-- Live Log -->
+          <div class="card" id="logCard" style="display:none">
+            <div class="card-title">Live Log</div>
+            <div class="terminal" id="logTerminal"></div>
+          </div>
+          <!-- RSS Feeds configured -->
+          <div class="card" id="feedsCard">
+            <div class="card-title">RSS Feeds</div>
+            <div id="detailFeedsList"></div>
+          </div>
+          <!-- Current Script -->
+          <div class="card">
+            <div class="card-title">Current Script <span id="scriptMeta" style="font-family:var(--mono);font-size:9px;color:var(--blue);margin-left:6px;text-transform:none;letter-spacing:0"></span></div>
+            <pre id="detailScript" style="font-family:var(--mono);font-size:10px;color:var(--muted);white-space:pre-wrap;line-height:1.7"></pre>
+          </div>
+          <!-- Videos -->
+          <div class="card">
+            <div class="card-title">Generated Videos</div>
+            <div class="video-grid" id="clientVideos"></div>
+          </div>
+        </div>
+      </div>
+      <!-- VIDEOS TAB -->
+      <div class="page" id="page-videos">
+        <div class="card">
+          <div class="card-title">All Generated Videos</div>
+          <div class="all-videos-grid" id="allVideosGrid"></div>
+        </div>
+      </div>
+      <!-- ACTIVITY TAB -->
+      <div class="page" id="page-activity">
+        <div class="card">
+          <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+            <span>Server Activity <span id="activityDot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#555;margin-left:6px;vertical-align:middle"></span></span>
+            <button class="btn btn-secondary" style="padding:3px 10px;font-size:10px" onclick="document.getElementById('activityTerminal').innerHTML=''">Clear</button>
+          </div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:8px">Live feed of all background activity — scheduled runs, bot progress, branding, and YouTube uploads. Streams even when no client is selected.</div>
+          <div class="terminal" id="activityTerminal" style="max-height:60vh;overflow:auto"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ═══════════════ CLIENT MODAL ═══════════════ -->
+<div class="modal-overlay" id="clientModalOverlay" onclick="closeIfOutside(event,'clientModalOverlay')">
+  <div class="modal" style="width:680px">
+    <div class="modal-title" id="clientModalTitle">NEW CLIENT</div>
+    <div class="form-grid">
+      <div class="form-row">
+        <div class="field"><label>Client Name</label><input type="text" id="fName" placeholder="Acme Corp"/></div>
+        <div class="field"><label>Avatar ID</label><input type="text" id="fAvatarId" placeholder="7566192328336359440"/></div>
+      </div>
+      <div class="field"><label>Fallback Script (used for manual runs)</label><textarea id="fScript" placeholder="Script used when running manually..."></textarea></div>
+
+      <div class="sec-div">RSS Feeds</div>
+
+      <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end">
+        <div class="field">
+          <label>Pick from library</label>
+          <select id="feedLibrarySelect" onchange="prefillFeedFromLibrary()"><option value="">— Choose a feed —</option></select>
+        </div>
+        <button class="btn btn-secondary" onclick="addFeedFromLibrary()" style="height:36px;white-space:nowrap">+ Add</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 140px auto;gap:8px;align-items:end">
+        <div class="field"><label>Or enter custom URL</label><input type="url" id="fFeedUrl" placeholder="https://feeds.example.com/rss.xml"/></div>
+        <div class="field"><label>Label</label><input type="text" id="fFeedLabel" placeholder="My Feed"/></div>
+        <div class="field"><label>Category</label>
+          <select id="fFeedCategory">
+            <option value="us-news">US News</option>
+            <option value="politics">Politics</option>
+            <option value="world">World</option>
+            <option value="technology">Technology</option>
+            <option value="finance">Finance</option>
+            <option value="entertainment">Entertainment</option>
+            <option value="sports">Sports</option>
+            <option value="science">Science</option>
+            <option value="health">Health</option>
+            <option value="india">India</option>
+            <option value="crypto">Crypto</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-secondary" onclick="addCustomFeed()" style="justify-self:start">+ Add Custom Feed</button>
+      <div id="modalFeedList" style="display:flex;flex-direction:column;gap:6px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('clientModalOverlay')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveClient()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ BRANDING MODAL ═══════════════ -->
+<div class="modal-overlay" id="brandingModalOverlay" onclick="closeIfOutside(event,'brandingModalOverlay')">
+  <div class="modal" style="width:620px;position:relative">
+    <div id="brandingModalLoading" class="loading-overlay" style="display:none;border-radius:0">
+      <div class="spinner-lg" style="border-top-color:var(--orange)"></div>
+      <span id="brandingLoadingText">Uploading...</span>
+    </div>
+    <div class="modal-title">🎨 BRANDING — <span id="brandingModalClientName" style="color:var(--orange)"></span></div>
+    <p style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:20px;line-height:1.7">
+      Upload a full-frame PNG overlay (your header + footer with a <strong style="color:var(--text)">transparent center</strong>) and it will be
+      composited over every generated video via FFmpeg — scaled to exactly match the video dimensions.
+      Optionally append an outro clip at the end.
+    </p>
+
+    <div class="branding-panel">
+
+      <!-- FRAME OVERLAY IMAGE -->
+      <div class="sec-div orange">Frame Overlay (header + footer PNG)</div>
+      <div class="branding-asset-row" id="brandOverlayRow">
+        <div class="branding-asset-icon" id="brandOverlayIcon">🖼</div>
+        <div class="branding-asset-info">
+          <div class="branding-asset-label">Overlay File</div>
+          <div class="branding-asset-value empty-val" id="brandOverlayValue">No overlay uploaded</div>
+          <div class="branding-asset-hint" id="brandOverlayHint">PNG with transparent center · same resolution as your video (e.g. 1080×1920)</div>
+        </div>
+        <div class="branding-asset-actions">
+          <button class="btn btn-secondary" style="padding:5px 10px;font-size:10px" onclick="document.getElementById('overlayFileInput').click()">Upload</button>
+          <button class="btn btn-danger" style="padding:5px 10px;font-size:10px" id="overlayDeleteBtn" onclick="deleteBrandingAsset('overlay')" title="Remove overlay">✕</button>
+        </div>
+      </div>
+      <input type="file" id="overlayFileInput" accept="image/png,image/webp" style="display:none" onchange="uploadOverlay(this)"/>
+      <div class="drop-zone" id="overlayDropZone"
+           onclick="document.getElementById('overlayFileInput').click()"
+           ondragover="event.preventDefault();this.classList.add('drag-over')"
+           ondragleave="this.classList.remove('drag-over')"
+           ondrop="handleOverlayDrop(event)">
+        <div class="drop-zone-icon">⬆</div>
+        <div>Drop PNG / WEBP here or click to browse</div>
+        <div style="font-size:9px;margin-top:4px;opacity:.6">Transparent center required · max 20MB</div>
+      </div>
+      <div class="upload-progress" id="overlayUploadProgress"><div class="upload-progress-bar" id="overlayUploadBar"></div></div>
+
+      <!-- OUTRO CLIP -->
+      <div class="sec-div orange">Outro Clip (appended at end)</div>
+      <div class="branding-asset-row" id="brandOutroRow">
+        <div class="branding-asset-icon" id="brandOutroIcon">🎬</div>
+        <div class="branding-asset-info">
+          <div class="branding-asset-label">Outro File</div>
+          <div class="branding-asset-value empty-val" id="brandOutroValue">No outro uploaded</div>
+          <div class="branding-asset-hint">MP4 / MOV · same resolution as your avatar video recommended</div>
+        </div>
+        <div class="branding-asset-actions">
+          <button class="btn btn-secondary" style="padding:5px 10px;font-size:10px" onclick="document.getElementById('outroFileInput').click()">Upload</button>
+          <button class="btn btn-danger" style="padding:5px 10px;font-size:10px" id="outroDeleteBtn" onclick="deleteBrandingAsset('outro')" title="Remove outro">✕</button>
+        </div>
+      </div>
+      <input type="file" id="outroFileInput" accept="video/mp4,video/quicktime,video/webm" style="display:none" onchange="uploadOutro(this)"/>
+      <div class="drop-zone" id="outroDropZone"
+           ondragover="event.preventDefault();this.classList.add('drag-over')"
+           ondragleave="this.classList.remove('drag-over')"
+           ondrop="handleOutroDrop(event)">
+        <input type="file" accept="video/mp4,video/quicktime,video/webm" onchange="uploadOutro(this)"/>
+        <div class="drop-zone-icon">🎞</div>
+        <div>Drop MP4 / MOV here or click to browse</div>
+        <div style="font-size:9px;margin-top:4px;opacity:.6">Max 200MB</div>
+      </div>
+      <div class="upload-progress" id="outroUploadProgress"><div class="upload-progress-bar" id="outroUploadBar"></div></div>
+
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('brandingModalOverlay')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ YOUTUBE MODAL ═══════════════ -->
+<div class="modal-overlay" id="youtubeModalOverlay" onclick="closeIfOutside(event,'youtubeModalOverlay')">
+  <div class="modal" style="width:640px;position:relative">
+    <div id="ytModalLoading" class="loading-overlay" style="display:none;border-radius:0">
+      <div class="spinner"></div><span id="ytLoadingText">Working...</span>
+    </div>
+    <div class="modal-title">▶ YOUTUBE — <span id="ytModalClientName" style="color:#ff4d4d"></span></div>
+
+    <!-- Connection status -->
+    <div class="branding-asset-row" id="ytConnRow" style="margin-bottom:14px">
+      <div class="branding-asset-icon" id="ytConnIcon">▶</div>
+      <div class="branding-asset-info">
+        <div class="branding-asset-label">Channel Connection</div>
+        <div class="branding-asset-value empty-val" id="ytConnValue">Not connected</div>
+        <div class="branding-asset-hint">Connect this client's channel with Google sign-in (OAuth). Videos upload via the official YouTube Data API.</div>
+      </div>
+      <div class="branding-asset-actions">
+        <button class="btn btn-danger" style="padding:5px 10px;font-size:10px;display:none" id="ytDisconnectBtn" onclick="disconnectYoutube()" title="Disconnect">✕</button>
+      </div>
+    </div>
+    <button class="icon-btn" id="ytConnectBtn" style="border-color:rgba(255,0,0,.4);color:#ff4d4d;width:100%;justify-content:center" onclick="connectYoutube()">
+      <span>▶</span> CONNECT YOUTUBE CHANNEL
+    </button>
+
+    <div style="height:1px;background:var(--border);margin:18px 0"></div>
+
+    <!-- Settings -->
+    <div class="field" style="display:flex;align-items:center;gap:10px">
+      <input type="checkbox" id="ytEnabled" style="width:auto"/>
+      <label for="ytEnabled" style="margin:0;cursor:pointer">Auto-upload every finished video to YouTube</label>
+    </div>
+    <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin:-4px 0 14px;line-height:1.5">
+      On publish we set: <strong>Public</strong> · <strong>Not made for kids</strong>. Title, description, hashtags &amp; tags are generated by Groq from the script. <em>Note: the "show like count" toggle isn't available in the YouTube API and stays at your channel default.</em>
+    </div>
+
+    <div class="field"><label>Default hashtags (comma separated, optional)</label>
+      <input type="text" id="ytHashtags" placeholder="news, shorts, ai"/></div>
+    <div class="field"><label>Default tags (comma separated, optional)</label>
+      <input type="text" id="ytTags" placeholder="breaking news, world news, daily update"/></div>
+    <div class="field"><label>Title template (optional · use {title}, {client}, {topic})</label>
+      <input type="text" id="ytTitleTpl" placeholder="{title} | {client}"/></div>
+    <div class="field"><label>Description template (optional · use {description}, {client})</label>
+      <textarea id="ytDescTpl" placeholder="{description}&#10;&#10;Follow {client} for daily videos!"></textarea></div>
+
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('youtubeModalOverlay')">Close</button>
+      <button class="icon-btn green" onclick="saveYoutubeConfig()"><span>✓</span> SAVE SETTINGS</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ SCHEDULE MODAL ═══════════════ -->
+<div class="modal-overlay" id="scheduleModalOverlay" onclick="closeIfOutside(event,'scheduleModalOverlay')">
+  <div class="modal" style="width:560px;position:relative">
+    <div id="schModalLoading" class="loading-overlay" style="display:none;border-radius:0">
+      <div class="spinner"></div><span>Saving...</span>
+    </div>
+    <div class="modal-title">⏰ DAILY SCHEDULE — <span id="schModalClientName" style="color:#7aa8ff"></span></div>
+
+    <div class="field" style="display:flex;align-items:center;gap:10px">
+      <input type="checkbox" id="schEnabled" style="width:auto"/>
+      <label for="schEnabled" style="margin:0;cursor:pointer">Auto-generate &amp; publish daily on this schedule</label>
+    </div>
+    <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin:-4px 0 14px;line-height:1.5">
+      Each run pulls a <strong>fresh, non-duplicate</strong> article from this client's RSS feeds, generates a script, runs the bot, and uploads to YouTube. Requires the channel to be connected.
+    </div>
+
+    <div style="display:flex;gap:12px;flex-wrap:wrap">
+      <div class="field" style="flex:1;min-width:120px"><label>Videos per day</label>
+        <input type="number" id="schCount" min="1" max="12" value="5" oninput="renderSchPreview()"/></div>
+      <div class="field" style="flex:1;min-width:120px"><label>Gap (hours)</label>
+        <input type="number" id="schGap" min="1" max="12" value="3" oninput="renderSchPreview()"/></div>
+    </div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap">
+      <div class="field" style="flex:1;min-width:120px"><label>Start hour (0-23)</label>
+        <input type="number" id="schStartH" min="0" max="23" value="9" oninput="renderSchPreview()"/></div>
+      <div class="field" style="flex:1;min-width:120px"><label>Start minute</label>
+        <input type="number" id="schStartM" min="0" max="59" value="0" oninput="renderSchPreview()"/></div>
+    </div>
+    <div class="field"><label>Timezone (IANA, e.g. Asia/Kolkata, Europe/Amsterdam, UTC)</label>
+      <input type="text" id="schTz" placeholder="UTC"/></div>
+
+    <div class="branding-strip" id="schPreview" style="background:rgba(120,170,255,.06);border-color:rgba(120,170,255,.25)"></div>
+
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('scheduleModalOverlay')">Close</button>
+      <button class="icon-btn" style="border-color:rgba(120,170,255,.5);color:#7aa8ff" onclick="runScheduleNow()"><span>▶</span> RUN ONE NOW</button>
+      <button class="icon-btn green" onclick="saveSchedule()"><span>✓</span> SAVE SCHEDULE</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ RSS PREVIEW MODAL ═══════════════ -->
+<div class="modal-overlay rss-preview-modal" id="rssPreviewOverlay">
+  <div class="modal" style="width:860px;position:relative">
+    <div id="rssLoadingOverlay" class="loading-overlay" style="display:none;border-radius:0">
+      <div class="spinner-lg"></div>
+      <span>Fetching feeds & generating scripts...</span>
+      <span style="font-size:9px;opacity:.6">This may take 15–30 seconds</span>
+    </div>
+    <div class="modal-title">SELECT A SCRIPT TO RUN</div>
+    <p style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:16px">Scripts generated from your latest RSS articles. Click a card to select it, then hit Run.</p>
+    <div class="preview-cards" id="previewCards"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('rssPreviewOverlay')">Cancel</button>
+      <button class="icon-btn blue" id="previewRunBtn" onclick="runSelectedPreview()" disabled><span>▶</span> RUN SELECTED</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ CALENDAR MODAL ═══════════════ -->
+<div class="modal-overlay" id="calendarOverlay" onclick="closeIfOutside(event,'calendarOverlay')">
+  <div class="modal" style="width:960px;max-width:98vw;position:relative">
+    <div id="calLoadingOverlay" class="loading-overlay" style="display:none">
+      <div class="spinner-lg"></div>
+      <span id="calLoadingText">Generating 30-day content calendar...</span>
+      <span style="font-size:9px;opacity:.6">AI is writing topic ideas + scripts for each day</span>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div class="modal-title" style="margin-bottom:0" id="calModalTitle">CONTENT CALENDAR</div>
+      <button class="icon-btn cyan" onclick="generateCalendar()" id="genCalBtn"><span>✦</span> REGENERATE</button>
+    </div>
+    <div class="cal-controls">
+      <button class="btn btn-secondary" style="padding:5px 10px" onclick="calNav(-1)">◀</button>
+      <span class="cal-month-label" id="calMonthLabel"></span>
+      <button class="btn btn-secondary" style="padding:5px 10px" onclick="calNav(1)">▶</button>
+    </div>
+    <div class="cal-grid">
+      <div class="cal-day-header">SUN</div>
+      <div class="cal-day-header">MON</div>
+      <div class="cal-day-header">TUE</div>
+      <div class="cal-day-header">WED</div>
+      <div class="cal-day-header">THU</div>
+      <div class="cal-day-header">FRI</div>
+      <div class="cal-day-header">SAT</div>
+    </div>
+    <div style="display:flex;gap:14px;margin-top:12px;font-family:var(--mono);font-size:9px;color:var(--muted)">
+      <span>■ <span style="color:var(--muted)">IDEA</span></span>
+      <span style="color:var(--green)">■ <span style="color:var(--green)">READY</span></span>
+      <span style="color:var(--blue)">■ <span style="color:var(--blue)">USED</span></span>
+    </div>
+    <div class="modal-footer" style="justify-content:flex-start">
+      <button class="btn btn-secondary" onclick="closeModal('calendarOverlay')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ CALENDAR ENTRY MODAL ═══════════════ -->
+<div class="modal-overlay cal-modal" id="calEntryOverlay" onclick="closeIfOutside(event,'calEntryOverlay')">
+  <div class="modal">
+    <div class="modal-title" id="calEntryTitle"></div>
+    <div class="form-grid">
+      <div class="field">
+        <label>Topic Title</label>
+        <input type="text" id="calEntryTopicInput"/>
+      </div>
+      <div class="field">
+        <label>Script</label>
+        <textarea id="calEntryScriptInput" style="min-height:200px"></textarea>
+      </div>
+      <div class="field">
+        <label>Status</label>
+        <select id="calEntryStatus">
+          <option value="idea">Idea</option>
+          <option value="ready">Ready</option>
+          <option value="used">Used</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('calEntryOverlay')">Cancel</button>
+      <button class="btn btn-secondary" onclick="saveCalEntry()">Save</button>
+      <button class="icon-btn green" onclick="runCalEntry()" id="calEntryRunBtn"><span>▶</span> RUN THIS SCRIPT</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════
+let clients = [], selectedId = null, editingId = null;
+let activeJobId = null, sseSource = null;
+let feedLibrary = {};
+let modalFeeds = [];
+let selectedPreviewIdx = -1;
+let rssPreviewData = [];
+let calendarData = [];
+let calViewDate = new Date();
+let editingCalEntryId = null;
+let currentBranding = {};
+let currentYoutube = {};
+
+// ═══════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════
+async function init() {
+  feedLibrary = await fetch("/api/feed-library").then(r => r.json());
+  populateFeedLibrarySelect();
+  await loadClients();
+}
+
+// ═══════════════════════════════════════════════════════
+//  TABS
+// ═══════════════════════════════════════════════════════
+function switchTab(tab) {
+  document.querySelectorAll(".tab").forEach((t,i) => t.classList.toggle("active", ["clients","videos","activity"][i] === tab));
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.getElementById(`page-${tab}`).classList.add("active");
+  if (tab === "videos") loadAllVideos();
+}
+
+// ═══════════════════════════════════════════════════════
+//  CLIENTS
+// ═══════════════════════════════════════════════════════
+async function loadClients() {
+  clients = await fetch("/api/clients").then(r => r.json());
+  renderSidebar();
+  if (selectedId) {
+    const still = clients.find(c => c._id === selectedId);
+    still ? selectClient(selectedId) : showWelcome();
+  }
+}
+
+function renderSidebar() {
+  const list = document.getElementById("clientList");
+  if (!clients.length) {
+    list.innerHTML = `<div class="empty" style="padding:32px 16px"><div class="empty-icon" style="font-size:22px">⊕</div><p>No clients yet</p></div>`;
+    return;
+  }
+  list.innerHTML = clients.map(c => {
+    const hasBranding = c.branding && (c.branding.overlayFile || c.branding.outroFile);
+    return `
+    <div class="client-item ${c._id===selectedId?"active":""}" onclick="selectClient('${c._id}')">
+      <div class="client-avatar">${c.name[0].toUpperCase()}</div>
+      <div class="client-info">
+        <div class="client-name">${esc(c.name)}</div>
+        <div class="client-sub">
+          ${c.rssFeeds?.length ? `<span class="rss-chip">RSS ${c.rssFeeds.length}</span>` : ""}
+          ${c.contentCalendar?.length ? `<span class="cal-chip">CAL</span>` : ""}
+          ${hasBranding ? `<span class="brand-chip">🎨</span>` : ""}
+        </div>
+      </div>
+      <div class="status-dot" id="dot-${c._id}"></div>
+    </div>`;
+  }).join("");
+  updateDots();
+}
+
+async function selectClient(id) {
+  selectedId = id;
+  renderSidebar();
+  const client = clients.find(c => c._id === id);
+  if (!client) return;
+
+  document.getElementById("welcomeState").style.display = "none";
+  const detail = document.getElementById("clientDetail");
+  detail.style.display = "flex";
+
+  document.getElementById("detailAvatar").textContent = client.name[0].toUpperCase();
+  document.getElementById("detailName").textContent   = client.name;
+  document.getElementById("detailAvatarId").textContent = `Avatar ID: ${client.avatarId}`;
+  document.getElementById("detailScript").textContent = client.script || "— no script yet —";
+  document.getElementById("scriptMeta").textContent = client.script ? `(${client.script.split(" ").length} words)` : "";
+
+  document.getElementById("rssBtn").style.display = (client.rssFeeds?.length) ? "flex" : "none";
+
+  renderDetailFeeds(client.rssFeeds || []);
+  currentBranding = client.branding || {};
+  renderBrandingStrip(currentBranding);
+  renderYoutubeStrip(client.youtube || {});
+  renderScheduleStrip(client.schedule || {});
+
+  setRunBtn(false); setRssBtn(false);
+  document.getElementById("logCard").style.display = "none";
+  await loadClientVideos(id);
+}
+
+function renderDetailFeeds(feeds) {
+  const el = document.getElementById("detailFeedsList");
+  if (!feeds.length) { el.innerHTML = `<p style="font-family:var(--mono);font-size:10px;color:var(--muted)">No RSS feeds. Edit client to add feeds.</p>`; return; }
+  el.innerHTML = `<div class="feed-list">${feeds.map(f => `
+    <div class="feed-row">
+      <span class="feed-cat-badge ${f.category||''}">${f.category||"—"}</span>
+      <span class="feed-label">${esc(f.label||f.url)}</span>
+      <span class="feed-url">${esc(f.url)}</span>
+    </div>`).join("")}</div>`;
+}
+
+// ─── Branding strip in client detail ─────────────────
+function renderBrandingStrip(branding = {}) {
+  const el = document.getElementById("brandingStrip");
+  const hasOverlay = !!branding.overlayFile;
+  const hasOutro   = !!branding.outroFile;
+  const hasAny     = hasOverlay || hasOutro;
+
+  if (!hasAny) {
+    el.innerHTML = `<div style="font-family:var(--mono);font-size:10px;color:var(--muted)">No branding configured. Click <strong style="color:var(--orange)">🎨 BRANDING</strong> to upload your frame overlay and outro.</div>`;
+    return;
+  }
+
+  el.innerHTML = `
+    <div class="branding-strip">
+      ${hasOverlay ? `
+        <div class="branding-preview-item active">
+          <img src="/branding_assets/${esc(branding.overlayFile)}" class="branding-overlay-thumb" alt="overlay"
+            onerror="this.style.display='none'"/>
+          <span>FRAME OVERLAY</span>
+        </div>` : `<div class="branding-preview-item"><div class="pip"></div><span>NO OVERLAY</span></div>`}
+      <div style="width:1px;height:20px;background:var(--border)"></div>
+      ${hasOutro ? `
+        <div class="branding-preview-item active">
+          <div class="pip"></div>
+          <span>OUTRO: <span style="color:var(--text)">${esc(branding.outroFile)}</span></span>
+        </div>` : `<div class="branding-preview-item"><div class="pip"></div><span>NO OUTRO</span></div>`}
+    </div>`;
+}
+
+function showWelcome() {
+  selectedId = null;
+  document.getElementById("welcomeState").style.display = "";
+  document.getElementById("clientDetail").style.display = "none";
+}
+
+// ═══════════════════════════════════════════════════════
+//  YOUTUBE
+// ═══════════════════════════════════════════════════════
+function renderYoutubeStrip(yt = {}) {
+  const el = document.getElementById("youtubeStrip");
+  const connected = !!yt.connected;
+  const enabled   = !!yt.enabled;
+  if (!connected) {
+    el.innerHTML = `<div style="font-family:var(--mono);font-size:10px;color:var(--muted)">Channel not connected. Click <strong style="color:#ff4d4d">▶ YOUTUBE</strong> to connect this client's channel and enable auto-upload.</div>`;
+    return;
+  }
+  el.innerHTML = `
+    <div class="branding-strip" style="background:rgba(255,0,0,.05);border-color:rgba(255,0,0,.2)">
+      <div class="branding-preview-item active" style="color:#ff4d4d">
+        <div class="pip" style="background:#ff4d4d;box-shadow:0 0 5px rgba(255,0,0,.6)"></div>
+        <span>CHANNEL CONNECTED${yt.channelName ? ": <span style='color:var(--text)'>"+esc(yt.channelName)+"</span>" : ""}</span>
+      </div>
+      <div style="width:1px;height:20px;background:var(--border)"></div>
+      <div class="branding-preview-item ${enabled?'active':''}" ${enabled?"style='color:#ff4d4d'":""}>
+        <div class="pip" ${enabled?"style='background:#ff4d4d'":""}></div>
+        <span>AUTO-UPLOAD ${enabled?"ON":"OFF"}</span>
+      </div>
+    </div>`;
+}
+
+async function openYoutubeModal() {
+  if (!selectedId) return;
+  const client = clients.find(c => c._id === selectedId);
+  document.getElementById("ytModalClientName").textContent = client?.name || "";
+  try {
+    currentYoutube = await fetch(`/api/clients/${selectedId}/youtube`).then(r => r.json());
+  } catch { currentYoutube = {}; }
+  renderYoutubeModalState(currentYoutube);
+  openModal("youtubeModalOverlay");
+}
+
+function renderYoutubeModalState(yt = {}) {
+  const connected = !!yt.connected;
+  document.getElementById("ytConnRow").classList.toggle("has-asset", connected);
+  document.getElementById("ytConnIcon").textContent = connected ? "✅" : "▶";
+  const val = document.getElementById("ytConnValue");
+  val.textContent = connected ? (yt.channelName ? `Connected: ${yt.channelName}` : "Connected") : "Not connected";
+  val.classList.toggle("empty-val", !connected);
+  document.getElementById("ytDisconnectBtn").style.display = connected ? "" : "none";
+  const connectBtn = document.getElementById("ytConnectBtn");
+  connectBtn.innerHTML = connected
+    ? `<span>↻</span> RECONNECT CHANNEL`
+    : `<span>▶</span> CONNECT YOUTUBE CHANNEL`;
+
+  document.getElementById("ytEnabled").checked  = !!yt.enabled;
+  document.getElementById("ytHashtags").value   = (yt.defaultHashtags || []).join(", ");
+  document.getElementById("ytTags").value       = (yt.defaultTags || []).join(", ");
+  document.getElementById("ytTitleTpl").value   = yt.titleTemplate || "";
+  document.getElementById("ytDescTpl").value    = yt.descriptionTemplate || "";
+}
+
+function ytLoading(on, text) {
+  document.getElementById("ytModalLoading").style.display = on ? "flex" : "none";
+  if (text) document.getElementById("ytLoadingText").textContent = text;
+}
+
+// OAuth connect: open Google consent in a popup, then poll for completion
+async function connectYoutube() {
+  if (!selectedId) return;
+  ytLoading(true, "Opening Google sign-in...");
+  try {
+    const { url, error } = await fetch(`/api/clients/${selectedId}/youtube/auth`).then(r => r.json());
+    if (error) throw new Error(error);
+    const popup = window.open(url, "yt_oauth", "width=520,height=640");
+    // Poll the config until the channel reports connected (or popup closes)
+    let tries = 0;
+    const iv = setInterval(async () => {
+      tries++;
+      let cfg = {};
+      try { cfg = await fetch(`/api/clients/${selectedId}/youtube`).then(r => r.json()); } catch {}
+      if (cfg.connected) {
+        clearInterval(iv);
+        currentYoutube = { ...currentYoutube, ...cfg };
+        renderYoutubeModalState(currentYoutube);
+        await refreshClientYoutube();
+        ytLoading(false);
+        try { popup && popup.close(); } catch {}
+      } else if ((popup && popup.closed) || tries > 150) { // ~5 min timeout
+        clearInterval(iv);
+        ytLoading(false);
+      }
+    }, 2000);
+  } catch (e) {
+    ytLoading(false);
+    alert("Could not start YouTube connect: " + e.message);
+  }
+}
+
+async function disconnectYoutube() {
+  if (!selectedId || !confirm("Disconnect this channel?")) return;
+  ytLoading(true, "Disconnecting...");
+  try {
+    await fetch(`/api/clients/${selectedId}/youtube`, { method: "DELETE" });
+    currentYoutube = { ...currentYoutube, connected: false, channelName: "" };
+    renderYoutubeModalState(currentYoutube);
+    await refreshClientYoutube();
+  } catch (e) { alert(e.message); }
+  finally { ytLoading(false); }
+}
+
+async function saveYoutubeConfig() {
+  if (!selectedId) return;
+  ytLoading(true, "Saving...");
+  const splitList = s => s.split(",").map(x=>x.trim()).filter(Boolean);
+  try {
+    const body = {
+      enabled:             document.getElementById("ytEnabled").checked,
+      defaultHashtags:     splitList(document.getElementById("ytHashtags").value),
+      defaultTags:         splitList(document.getElementById("ytTags").value),
+      titleTemplate:       document.getElementById("ytTitleTpl").value.trim(),
+      descriptionTemplate: document.getElementById("ytDescTpl").value.trim(),
+    };
+    const res = await fetch(`/api/clients/${selectedId}/youtube`, {
+      method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Save failed");
+    currentYoutube = { ...currentYoutube, ...data };
+    await refreshClientYoutube();
+    closeModal("youtubeModalOverlay");
+  } catch (e) { alert("Could not save: " + e.message); }
+  finally { ytLoading(false); }
+}
+
+// Refresh the in-memory client + strip after youtube changes
+async function refreshClientYoutube() {
+  try {
+    const fresh = await fetch(`/api/clients/${selectedId}`).then(r => r.json());
+    const idx = clients.findIndex(c => c._id === selectedId);
+    if (idx !== -1) clients[idx] = fresh;
+    renderYoutubeStrip({ ...(fresh.youtube||{}), connected: currentYoutube.connected });
+  } catch {}
+}
+
+// Manual upload of an already-finished video
+async function uploadVideoToYoutube(videoId, btn) {
+  if (btn) { btn.disabled = true; btn.textContent = "Uploading…"; }
+  try {
+    const res = await fetch(`/api/videos/${videoId}/upload-youtube`, { method: "POST" });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed");
+    if (btn) btn.textContent = "Uploading… see log";
+    if (selectedId) loadClientVideos(selectedId);
+  } catch (e) {
+    alert("YouTube upload: " + e.message);
+    if (btn) { btn.disabled = false; btn.textContent = "▶ YouTube"; }
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  SCHEDULE
+// ═══════════════════════════════════════════════════════
+function computeSlotsClient(s) {
+  const count = Math.max(1, Math.min(12, +s.count || 5));
+  const gap   = Math.max(1, +s.gapHours || 3);
+  const sh = (+s.startHour || 0), sm = (+s.startMinute || 0);
+  const out = [];
+  for (let i=0;i<count;i++){
+    const t = sh*60 + sm + i*gap*60;
+    out.push(`${String(Math.floor(t/60)%24).padStart(2,"0")}:${String(t%60).padStart(2,"0")}`);
+  }
+  return out;
+}
+
+function renderScheduleStrip(s = {}) {
+  const el = document.getElementById("scheduleStrip");
+  if (!s.enabled) {
+    el.innerHTML = `<div style="font-family:var(--mono);font-size:10px;color:var(--muted)">Off. Click <strong style="color:#7aa8ff">⏰ SCHEDULE</strong> to auto-generate &amp; publish unique videos every few hours.</div>`;
+    return;
+  }
+  const slots = computeSlotsClient(s);
+  el.innerHTML = `
+    <div class="branding-strip" style="background:rgba(120,170,255,.06);border-color:rgba(120,170,255,.25)">
+      <div class="branding-preview-item active" style="color:#7aa8ff">
+        <div class="pip" style="background:#7aa8ff;box-shadow:0 0 5px rgba(120,170,255,.6)"></div>
+        <span>${slots.length}/DAY · every ${s.gapHours||3}h</span>
+      </div>
+      <div style="width:1px;height:20px;background:var(--border)"></div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--text)">${slots.join("  ·  ")} <span style="color:var(--muted)">(${esc(s.timezone||"UTC")})</span></div>
+    </div>`;
+}
+
+async function openScheduleModal() {
+  if (!selectedId) return;
+  const client = clients.find(c => c._id === selectedId);
+  document.getElementById("schModalClientName").textContent = client?.name || "";
+  let s = {};
+  try { s = await fetch(`/api/clients/${selectedId}/schedule`).then(r=>r.json()); } catch {}
+  document.getElementById("schEnabled").checked = !!s.enabled;
+  document.getElementById("schCount").value  = s.count ?? 5;
+  document.getElementById("schGap").value    = s.gapHours ?? 3;
+  document.getElementById("schStartH").value = s.startHour ?? 9;
+  document.getElementById("schStartM").value = s.startMinute ?? 0;
+  document.getElementById("schTz").value     = s.timezone || (Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC");
+  renderSchPreview();
+  openModal("scheduleModalOverlay");
+}
+
+function readSchForm() {
+  return {
+    enabled:     document.getElementById("schEnabled").checked,
+    count:       +document.getElementById("schCount").value,
+    gapHours:    +document.getElementById("schGap").value,
+    startHour:   +document.getElementById("schStartH").value,
+    startMinute: +document.getElementById("schStartM").value,
+    timezone:    document.getElementById("schTz").value.trim() || "UTC",
+  };
+}
+
+function renderSchPreview() {
+  const slots = computeSlotsClient(readSchForm());
+  document.getElementById("schPreview").innerHTML =
+    `<div style="font-family:var(--mono);font-size:11px;color:#7aa8ff">Daily times: ${slots.join("  ·  ")}</div>`;
+}
+
+async function saveSchedule() {
+  if (!selectedId) return;
+  document.getElementById("schModalLoading").style.display = "flex";
+  try {
+    const res = await fetch(`/api/clients/${selectedId}/schedule`, {
+      method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(readSchForm()),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Save failed");
+    const idx = clients.findIndex(c => c._id === selectedId);
+    if (idx !== -1) clients[idx].schedule = data;
+    renderScheduleStrip(data);
+    closeModal("scheduleModalOverlay");
+  } catch (e) { alert("Could not save schedule: " + e.message); }
+  finally { document.getElementById("schModalLoading").style.display = "none"; }
+}
+
+async function runScheduleNow() {
+  if (!selectedId) return;
+  try {
+    const res = await fetch(`/api/clients/${selectedId}/schedule/run-now`, { method: "POST" });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed");
+    alert("Started one run — it will appear in the video list shortly.");
+    closeModal("scheduleModalOverlay");
+    loadClientVideos(selectedId);
+  } catch (e) { alert(e.message); }
+}
+
+// ─── Videos ──────────────────────────────────────────
+async function loadClientVideos(clientId) {
+  const videos = await fetch(`/api/videos?clientId=${clientId}`).then(r => r.json());
+  const grid = document.getElementById("clientVideos");
+  grid.innerHTML = videos.length
+    ? videos.map(videoCard).join("")
+    : `<div class="empty" style="padding:32px 0"><div class="empty-icon">▷</div><p>No videos yet</p></div>`;
+}
+
+async function loadAllVideos() {
+  const videos = await fetch("/api/videos").then(r => r.json());
+  const grid = document.getElementById("allVideosGrid");
+  grid.innerHTML = videos.length
+    ? videos.map(v => `<div><div style="font-family:var(--mono);font-size:9px;color:var(--muted);padding:0 0 5px">${esc(v.clientName||"—")}</div>${videoCard(v)}</div>`).join("")
+    : `<div class="empty" style="padding:48px 0"><div class="empty-icon">▷</div><p>No videos yet</p></div>`;
+}
+
+function videoCard(v) {
+  const has = v.status==="done" && v.filePath;
+  let ytRow = "";
+  if (has) {
+    if (v.youtubeUrl) {
+      ytRow = `<a class="video-dl" href="${v.youtubeUrl.startsWith('http')?v.youtubeUrl:'https://'+v.youtubeUrl}" target="_blank" style="border-color:rgba(255,0,0,.4);color:#ff4d4d">▶ On YouTube</a>`;
+    } else if (v.youtubeStatus === "uploading") {
+      ytRow = `<span class="video-dl" style="opacity:.6">▶ Uploading…</span>`;
+    } else if (v.youtubeStatus === "failed") {
+      ytRow = `<a class="video-dl" href="javascript:void(0)" onclick="uploadVideoToYoutube('${v._id}',this)" style="border-color:rgba(255,0,0,.4);color:#ff4d4d">▶ Retry YouTube</a>`;
+    } else {
+      ytRow = `<a class="video-dl" href="javascript:void(0)" onclick="uploadVideoToYoutube('${v._id}',this)" style="border-color:rgba(255,0,0,.4);color:#ff4d4d">▶ YouTube</a>`;
+    }
+  }
+  return `<div class="video-card">
+    <div class="video-thumb">${has?`<video src="${v.filePath}" controls muted playsinline></video>`:`<span class="no-video">${statusLabel(v.status)}</span>`}</div>
+    <div class="video-status-bar"><span class="badge ${v.status}">${v.status}</span><span style="color:var(--muted)">${fmtDate(v.createdAt)}</span></div>
+    ${has?`<a class="video-dl" href="${v.filePath}" download>↓ Download</a>`:""}
+    ${ytRow}
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+//  BRANDING MODAL
+// ═══════════════════════════════════════════════════════
+async function openBrandingModal() {
+  if (!selectedId) return;
+  const client = clients.find(c => c._id === selectedId);
+  document.getElementById("brandingModalClientName").textContent = client?.name || "";
+
+  try {
+    const data = await fetch(`/api/clients/${selectedId}/branding`).then(r => r.json());
+    currentBranding = data;
+  } catch {}
+
+  renderBrandingModalState(currentBranding);
+  openModal("brandingModalOverlay");
+}
+
+function renderBrandingModalState(branding = {}) {
+  // Overlay image
+  const overlayRow    = document.getElementById("brandOverlayRow");
+  const overlayIcon   = document.getElementById("brandOverlayIcon");
+  const overlayVal    = document.getElementById("brandOverlayValue");
+  const overlayDelBtn = document.getElementById("overlayDeleteBtn");
+
+  if (branding.overlayFile) {
+    overlayRow.classList.add("has-asset");
+    overlayIcon.innerHTML = `<img src="/branding_assets/${esc(branding.overlayFile)}" alt="overlay"
+      style="width:48px;height:48px;object-fit:cover"
+      onerror="this.parentElement.textContent='🖼'"/>`;
+    overlayVal.textContent = branding.overlayFile;
+    overlayVal.classList.remove("empty-val");
+    overlayDelBtn.style.display = "";
+  } else {
+    overlayRow.classList.remove("has-asset");
+    overlayIcon.textContent = "🖼";
+    overlayVal.textContent = "No overlay uploaded";
+    overlayVal.classList.add("empty-val");
+    overlayDelBtn.style.display = "none";
+  }
+
+  // Outro
+  const outroRow    = document.getElementById("brandOutroRow");
+  const outroIcon   = document.getElementById("brandOutroIcon");
+  const outroVal    = document.getElementById("brandOutroValue");
+  const outroDelBtn = document.getElementById("outroDeleteBtn");
+
+  if (branding.outroFile) {
+    outroRow.classList.add("has-asset");
+    outroIcon.textContent = "✅";
+    outroVal.textContent = branding.outroFile;
+    outroVal.classList.remove("empty-val");
+    outroDelBtn.style.display = "";
+  } else {
+    outroRow.classList.remove("has-asset");
+    outroIcon.textContent = "🎬";
+    outroVal.textContent = "No outro uploaded";
+    outroVal.classList.add("empty-val");
+    outroDelBtn.style.display = "none";
+  }
+}
+
+// ── Overlay upload ─────────────────────────────────────
+function handleOverlayDrop(e) {
+  e.preventDefault();
+  document.getElementById("overlayDropZone").classList.remove("drag-over");
+  const file = e.dataTransfer.files[0];
+  if (file) uploadOverlayFile(file);
+}
+
+function uploadOverlay(input) {
+  if (input.files[0]) uploadOverlayFile(input.files[0]);
+}
+
+async function uploadOverlayFile(file) {
+  if (!selectedId) return;
+  setBrandingLoading(true, "Uploading frame overlay...");
+  showUploadProgress("overlay");
+
+  const form = new FormData();
+  form.append("overlay", file);
+
+  try {
+    const res = await fetchWithProgress(`/api/clients/${selectedId}/branding/overlay`, form, "overlayUploadBar");
+    if (!res.ok) { const e = await res.json(); throw new Error(e.error); }
+    const data = await res.json();
+    currentBranding.overlayFile = data.overlayFile;
+    renderBrandingModalState(currentBranding);
+    updateClientBrandingLocally();
+    renderBrandingStrip(currentBranding);
+    renderSidebar();
+  } catch(e) { alert("Overlay upload failed: " + e.message); }
+  finally { setBrandingLoading(false); hideUploadProgress("overlay"); }
+}
+
+// ── Outro upload ──────────────────────────────────────
+function handleOutroDrop(e) {
+  e.preventDefault();
+  document.getElementById("outroDropZone").classList.remove("drag-over");
+  const file = e.dataTransfer.files[0];
+  if (file) uploadOutroFile(file);
+}
+
+function uploadOutro(input) {
+  if (input.files[0]) uploadOutroFile(input.files[0]);
+}
+
+async function uploadOutroFile(file) {
+  if (!selectedId) return;
+  setBrandingLoading(true, `Uploading outro (${(file.size/1024/1024).toFixed(1)} MB)...`);
+  showUploadProgress("outro");
+
+  const form = new FormData();
+  form.append("outro", file);
+
+  try {
+    const res = await fetchWithProgress(`/api/clients/${selectedId}/branding/outro`, form, "outroUploadBar");
+    if (!res.ok) { const e = await res.json(); throw new Error(e.error); }
+    const data = await res.json();
+    currentBranding.outroFile = data.outroFile;
+    renderBrandingModalState(currentBranding);
+    updateClientBrandingLocally();
+    renderBrandingStrip(currentBranding);
+    renderSidebar();
+  } catch(e) { alert("Outro upload failed: " + e.message); }
+  finally { setBrandingLoading(false); hideUploadProgress("outro"); }
+}
+
+// ── Delete branding asset ─────────────────────────────
+async function deleteBrandingAsset(field) {
+  if (!selectedId) return;
+  if (!confirm(`Remove ${field} branding?`)) return;
+  setBrandingLoading(true, `Removing ${field}...`);
+  try {
+    await fetch(`/api/clients/${selectedId}/branding/${field}`, { method: "DELETE" });
+    if (field === "overlay") delete currentBranding.overlayFile;
+    if (field === "outro")   delete currentBranding.outroFile;
+    renderBrandingModalState(currentBranding);
+    updateClientBrandingLocally();
+    renderBrandingStrip(currentBranding);
+    renderSidebar();
+  } catch(e) { alert("Delete failed: " + e.message); }
+  finally { setBrandingLoading(false); }
+}
+
+function updateClientBrandingLocally() {
+  const idx = clients.findIndex(c => c._id === selectedId);
+  if (idx !== -1) clients[idx].branding = { ...currentBranding };
+}
+
+function setBrandingLoading(on, text = "") {
+  document.getElementById("brandingLoadingText").textContent = text;
+  document.getElementById("brandingModalLoading").style.display = on ? "flex" : "none";
+}
+
+function fetchWithProgress(url, formData, barId) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", url);
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) {
+        const bar = document.getElementById(barId);
+        if (bar) bar.style.width = Math.round((e.loaded / e.total) * 100) + "%";
+      }
+    };
+    xhr.onload  = () => resolve({ ok: xhr.status < 400, status: xhr.status, json: () => JSON.parse(xhr.responseText) });
+    xhr.onerror = () => reject(new Error("Network error"));
+    xhr.send(formData);
+  });
+}
+
+function showUploadProgress(type) {
+  const el  = document.getElementById(`${type}UploadProgress`);
+  const bar = document.getElementById(`${type}UploadBar`);
+  if (el)  el.style.display = "block";
+  if (bar) bar.style.width  = "0%";
+}
+function hideUploadProgress(type) {
+  const el = document.getElementById(`${type}UploadProgress`);
+  if (el) el.style.display = "none";
+}
+
+// ═══════════════════════════════════════════════════════
+//  MANUAL RUN
+// ═══════════════════════════════════════════════════════
+async function manualRun() {
+  if (!selectedId) return;
+  setRunBtn(true); setRssBtn(true);
+  const res = await fetch(`/api/clients/${selectedId}/run`, {method:"POST"});
+  if (!res.ok) { const e=await res.json(); alert(e.error); setRunBtn(false); setRssBtn(false); return; }
+  const {videoId} = await res.json();
+  startJobStream(videoId);
+}
+
+// ═══════════════════════════════════════════════════════
+//  RSS PREVIEW FLOW
+// ═══════════════════════════════════════════════════════
+async function openRssPreview() {
+  const client = clients.find(c => c._id === selectedId);
+  if (!client?.rssFeeds?.length) { alert("No RSS feeds configured. Edit the client to add feeds."); return; }
+
+  document.getElementById("previewCards").innerHTML = "";
+  document.getElementById("rssLoadingOverlay").style.display = "flex";
+  document.getElementById("previewRunBtn").disabled = true;
+  selectedPreviewIdx = -1;
+  openModal("rssPreviewOverlay");
+
+  try {
+    const res = await fetch(`/api/clients/${selectedId}/rss-preview`, {method:"POST"});
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    rssPreviewData = data.previews;
+    renderPreviewCards(data.previews);
+  } catch(e) {
+    document.getElementById("previewCards").innerHTML =
+      `<div class="empty"><div class="empty-icon">✗</div><p>${esc(e.message)}</p></div>`;
+  } finally {
+    document.getElementById("rssLoadingOverlay").style.display = "none";
+  }
+}
+
+function renderPreviewCards(previews) {
+  const container = document.getElementById("previewCards");
+  container.innerHTML = previews.map((p, i) => `
+    <div class="preview-card" id="preview-card-${i}" onclick="selectPreview(${i})">
+      <div class="preview-feed-label">📡 ${esc(p.feedLabel)} · <span style="text-transform:uppercase">${esc(p.category)}</span></div>
+      <div class="preview-headline">${esc(p.article.title)}</div>
+      ${p.article.pubDate ? `<div style="font-family:var(--mono);font-size:9px;color:var(--muted)">${esc(p.article.pubDate)}</div>` : ""}
+      <div class="preview-script">${esc(p.script)}</div>
+      <div class="preview-word-count">${p.script.split(" ").length} words · ~${Math.round(p.script.split(" ").length/2.5)} sec</div>
+    </div>`).join("");
+}
+
+function selectPreview(i) {
+  selectedPreviewIdx = i;
+  document.querySelectorAll(".preview-card").forEach((c,j) => c.classList.toggle("selected", i===j));
+  document.getElementById("previewRunBtn").disabled = false;
+}
+
+async function runSelectedPreview() {
+  if (selectedPreviewIdx < 0 || !rssPreviewData[selectedPreviewIdx]) return;
+  const picked = rssPreviewData[selectedPreviewIdx];
+
+  closeModal("rssPreviewOverlay");
+  setRunBtn(true); setRssBtn(true);
+
+  const res = await fetch(`/api/clients/${selectedId}/rss-run`, {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({ script: picked.script, articleTitle: picked.article.title }),
+  });
+  if (!res.ok) { const e=await res.json(); alert(e.error); setRunBtn(false); setRssBtn(false); return; }
+  const {videoId} = await res.json();
+
+  document.getElementById("detailScript").textContent = picked.script;
+  document.getElementById("scriptMeta").textContent = `⚡ from RSS · ${picked.script.split(" ").length} words`;
+
+  startJobStream(videoId);
+}
+
+// ═══════════════════════════════════════════════════════
+//  JOB STREAM (SSE + poll)
+// ═══════════════════════════════════════════════════════
+function startJobStream(videoId) {
+  activeJobId = videoId; updateDots();
+  const logCard = document.getElementById("logCard");
+  const terminal = document.getElementById("logTerminal");
+  logCard.style.display = ""; terminal.innerHTML = "";
+
+  if (sseSource) sseSource.close();
+  sseSource = new EventSource(`/api/videos/${videoId}/logs`);
+  sseSource.onmessage = async (e) => {
+    const data = JSON.parse(e.data);
+    if (data.msg === "__DONE__") {
+      sseSource.close(); setRunBtn(false); setRssBtn(false); activeJobId=null; updateDots();
+      loadClientVideos(selectedId); return;
+    }
+    appendLog(terminal, data);
+  };
+  sseSource.onerror = () => { sseSource.close(); setRunBtn(false); setRssBtn(false); pollDone(videoId); };
+  pollDone(videoId);
+}
+
+async function pollDone(videoId) {
+  const t = setInterval(async () => {
+    try {
+      const data = await fetch(`/api/videos/${videoId}`).then(r=>r.json());
+      if (data.status==="done"||data.status==="failed") {
+        clearInterval(t); setRunBtn(false); setRssBtn(false); activeJobId=null; updateDots();
+        loadClientVideos(selectedId);
+      }
+    } catch {}
+  }, 8000);
+}
+
+// ═══════════════════════════════════════════════════════
+//  CONTENT CALENDAR
+// ═══════════════════════════════════════════════════════
+async function openCalendarView() {
+  calViewDate = new Date();
+  openModal("calendarOverlay");
+  document.getElementById("calModalTitle").textContent = "CONTENT CALENDAR — " + (clients.find(c=>c._id===selectedId)?.name||"");
+
+  showCalLoading("Loading calendar...");
+  try {
+    const data = await fetch(`/api/clients/${selectedId}/calendar`).then(r=>r.json());
+    calendarData = data.calendar || [];
+    renderCalendar();
+  } catch {}
+  hideCalLoading();
+}
+
+async function generateCalendar() {
+  showCalLoading("Generating 30-day content calendar...");
+  try {
+    const data = await fetch(`/api/clients/${selectedId}/calendar/generate`, {method:"POST"}).then(r=>r.json());
+    if (data.error) throw new Error(data.error);
+    calendarData = data.calendar;
+    const updated = await fetch(`/api/clients/${selectedId}`).then(r=>r.json());
+    const idx = clients.findIndex(c=>c._id===selectedId);
+    if (idx !== -1) clients[idx] = updated;
+    renderSidebar();
+    renderCalendar();
+  } catch(e) { alert("Calendar generation failed: " + e.message); }
+  hideCalLoading();
+}
+
+function showCalLoading(txt) {
+  document.getElementById("calLoadingText").textContent = txt;
+  document.getElementById("calLoadingOverlay").style.display = "flex";
+}
+function hideCalLoading() { document.getElementById("calLoadingOverlay").style.display = "none"; }
+
+function calNav(dir) {
+  calViewDate.setMonth(calViewDate.getMonth() + dir);
+  renderCalendar();
+}
+
+function renderCalendar() {
+  const year  = calViewDate.getFullYear();
+  const month = calViewDate.getMonth();
+  const today = new Date().toISOString().split("T")[0];
+
+  document.getElementById("calMonthLabel").textContent =
+    calViewDate.toLocaleString("en-US", {month:"long", year:"numeric"}).toUpperCase();
+
+  const entryMap = {};
+  calendarData.forEach(e => { entryMap[e.date] = e; });
+
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+
+  let html = "";
+  for (let i = 0; i < firstDay; i++) html += `<div class="cal-day empty-day"></div>`;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${year}-${String(month+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    const entry = entryMap[dateStr];
+    const isToday = dateStr === today;
+    const status = entry?.status || "";
+    html += `<div class="cal-day${entry?" has-entry "+status:""}${isToday?" today":""}" onclick="openCalEntry('${dateStr}')">
+      <div class="cal-date">${d}</div>
+      ${entry ? `<div class="cal-topic">${esc(entry.topicTitle)}</div>` : ""}
+      ${entry ? `<div class="cal-status-pip ${status}"></div>` : ""}
+    </div>`;
+  }
+
+  const grid = document.querySelector(".cal-grid");
+  while (grid.children.length > 7) grid.removeChild(grid.lastChild);
+  const tmp = document.createElement("div");
+  tmp.innerHTML = html;
+  while (tmp.firstChild) grid.appendChild(tmp.firstChild);
+}
+
+async function openCalEntry(dateStr) {
+  const entry = calendarData.find(e => e.date === dateStr);
+  editingCalEntryId = entry?._id || null;
+
+  document.getElementById("calEntryTitle").textContent =
+    new Date(dateStr + "T12:00:00").toLocaleDateString("en-US", {weekday:"long", month:"long", day:"numeric", year:"numeric"});
+  document.getElementById("calEntryTopicInput").value  = entry?.topicTitle || "";
+  document.getElementById("calEntryScriptInput").value = entry?.script || "";
+  document.getElementById("calEntryStatus").value      = entry?.status || "idea";
+  document.getElementById("calEntryRunBtn").disabled   = !entry?.script;
+
+  openModal("calEntryOverlay");
+}
+
+async function saveCalEntry() {
+  if (!editingCalEntryId) { closeModal("calEntryOverlay"); return; }
+  const body = {
+    topicTitle: document.getElementById("calEntryTopicInput").value.trim(),
+    script:     document.getElementById("calEntryScriptInput").value.trim(),
+    status:     document.getElementById("calEntryStatus").value,
+  };
+  await fetch(`/api/clients/${selectedId}/calendar/${editingCalEntryId}`, {
+    method:"PATCH", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)
+  });
+  const e = calendarData.find(e => String(e._id) === String(editingCalEntryId));
+  if (e) Object.assign(e, body);
+  renderCalendar();
+  closeModal("calEntryOverlay");
+}
+
+async function runCalEntry() {
+  if (!editingCalEntryId) return;
+  const script = document.getElementById("calEntryScriptInput").value.trim();
+  if (!script) { alert("No script to run"); return; }
+
+  closeModal("calEntryOverlay");
+  closeModal("calendarOverlay");
+
+  setRunBtn(true); setRssBtn(true);
+  const res = await fetch(`/api/clients/${selectedId}/calendar/${editingCalEntryId}/run`, {method:"POST"});
+  if (!res.ok) { const e=await res.json(); alert(e.error); setRunBtn(false); setRssBtn(false); return; }
+  const {videoId} = await res.json();
+
+  document.getElementById("detailScript").textContent = script;
+  document.getElementById("scriptMeta").textContent = `📅 from calendar · ${script.split(" ").length} words`;
+
+  startJobStream(videoId);
+}
+
+// ═══════════════════════════════════════════════════════
+//  FEED LIBRARY HELPERS
+// ═══════════════════════════════════════════════════════
+function populateFeedLibrarySelect() {
+  const sel = document.getElementById("feedLibrarySelect");
+  sel.innerHTML = `<option value="">— Choose a feed —</option>`;
+  Object.entries(feedLibrary).forEach(([cat, feeds]) => {
+    const grp = document.createElement("optgroup");
+    grp.label = cat;
+    feeds.forEach((f, i) => {
+      const opt = document.createElement("option");
+      opt.value = `${cat}::${i}`;
+      opt.textContent = f.label;
+      grp.appendChild(opt);
+    });
+    sel.appendChild(grp);
+  });
+}
+
+function prefillFeedFromLibrary() {
+  const sel = document.getElementById("feedLibrarySelect");
+  if (!sel.value) return;
+  const [cat, idxStr] = sel.value.split("::");
+  const feed = feedLibrary[cat]?.[parseInt(idxStr)];
+  if (!feed) return;
+  document.getElementById("fFeedUrl").value      = feed.url;
+  document.getElementById("fFeedLabel").value    = feed.label;
+  document.getElementById("fFeedCategory").value = feed.category;
+}
+
+function addFeedFromLibrary() {
+  const sel = document.getElementById("feedLibrarySelect");
+  if (!sel.value) { alert("Please choose a feed from the library first"); return; }
+  const [cat, idxStr] = sel.value.split("::");
+  const feed = feedLibrary[cat]?.[parseInt(idxStr)];
+  if (!feed) return;
+  if (modalFeeds.some(f => f.url === feed.url)) { alert("This feed is already added"); return; }
+  modalFeeds.push({ ...feed });
+  renderModalFeedList();
+  sel.value = "";
+}
+
+function addCustomFeed() {
+  const url   = document.getElementById("fFeedUrl").value.trim();
+  const label = document.getElementById("fFeedLabel").value.trim();
+  const cat   = document.getElementById("fFeedCategory").value;
+  if (!url) { alert("Enter a feed URL"); return; }
+  if (modalFeeds.some(f => f.url === url)) { alert("Feed already added"); return; }
+  modalFeeds.push({ url, label: label || url, category: cat });
+  renderModalFeedList();
+  document.getElementById("fFeedUrl").value   = "";
+  document.getElementById("fFeedLabel").value = "";
+}
+
+function removeModalFeed(i) {
+  modalFeeds.splice(i, 1);
+  renderModalFeedList();
+}
+
+function renderModalFeedList() {
+  const el = document.getElementById("modalFeedList");
+  if (!modalFeeds.length) { el.innerHTML = ""; return; }
+  el.innerHTML = `<div class="feed-list">${modalFeeds.map((f,i) => `
+    <div class="feed-row">
+      <span class="feed-cat-badge ${f.category||''}">${f.category||"—"}</span>
+      <span class="feed-label">${esc(f.label||f.url)}</span>
+      <span class="feed-url">${esc(f.url)}</span>
+      <button class="feed-del" onclick="removeModalFeed(${i})">✕</button>
+    </div>`).join("")}</div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+//  CLIENT MODAL
+// ═══════════════════════════════════════════════════════
+function openClientModal(editing = false) {
+  const client = editing ? clients.find(c => c._id === selectedId) : null;
+  editingId = client ? client._id : null;
+  document.getElementById("clientModalTitle").textContent = editingId ? "EDIT CLIENT" : "NEW CLIENT";
+  document.getElementById("fName").value     = client?.name || "";
+  document.getElementById("fAvatarId").value = client?.avatarId || "";
+  document.getElementById("fScript").value   = client?.script || "";
+  modalFeeds = client ? JSON.parse(JSON.stringify(client.rssFeeds || [])) : [];
+  renderModalFeedList();
+  openModal("clientModalOverlay");
+}
+
+async function saveClient() {
+  const body = {
+    name:     document.getElementById("fName").value.trim(),
+    avatarId: document.getElementById("fAvatarId").value.trim(),
+    script:   document.getElementById("fScript").value.trim(),
+    rssFeeds: modalFeeds,
+  };
+  if (!body.name || !body.avatarId) return alert("Name and Avatar ID are required");
+
+  const url    = editingId ? `/api/clients/${editingId}` : "/api/clients";
+  const method = editingId ? "PUT" : "POST";
+  const res = await fetch(url, { method, headers:{"Content-Type":"application/json"}, body:JSON.stringify(body) });
+  if (!res.ok) { alert("Save failed"); return; }
+  closeModal("clientModalOverlay");
+  await loadClients();
+  if (!editingId) {
+    const all = await fetch("/api/clients").then(r=>r.json());
+    if (all.length) selectClient(all[0]._id);
+  } else selectClient(editingId);
+}
+
+async function deleteClient() {
+  if (!selectedId) return;
+  const c = clients.find(c => c._id === selectedId);
+  if (!confirm(`Delete "${c?.name}"?`)) return;
+  await fetch(`/api/clients/${selectedId}`, {method:"DELETE"});
+  showWelcome(); await loadClients();
+}
+
+// ═══════════════════════════════════════════════════════
+//  MODAL HELPERS
+// ═══════════════════════════════════════════════════════
+function openModal(id)  { document.getElementById(id).classList.add("open"); }
+function closeModal(id) { document.getElementById(id).classList.remove("open"); }
+function closeIfOutside(e, id) { if (e.target === document.getElementById(id)) closeModal(id); }
+document.addEventListener("keydown", e => {
+  if (e.key !== "Escape") return;
+  ["clientModalOverlay","rssPreviewOverlay","calendarOverlay","calEntryOverlay","brandingModalOverlay"].forEach(closeModal);
+});
+
+// ═══════════════════════════════════════════════════════
+//  BUTTON STATE
+// ═══════════════════════════════════════════════════════
+function setRunBtn(on) {
+  const b = document.getElementById("runBtn"); if (!b) return;
+  b.disabled = on;
+  b.innerHTML = on ? `<div class="spinner"></div> RUNNING` : `<span>▶</span> RUN SCRIPT`;
+}
+function setRssBtn(on) {
+  const b = document.getElementById("rssBtn"); if (!b) return;
+  b.disabled = on;
+  b.innerHTML = on ? `<div class="spinner-blue"></div> RUNNING` : `<span>📡</span> RSS AUTO-RUN`;
+}
+function updateDots() {
+  clients.forEach(c => {
+    const d = document.getElementById(`dot-${c._id}`); if (!d) return;
+    d.className = "status-dot" + (activeJobId && c._id===selectedId ? " running" : "");
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+//  LOG APPEND
+// ═══════════════════════════════════════════════════════
+function appendLog(terminal, entry) {
+  const msg  = entry.msg || "";
+  const line = document.createElement("div"); line.className = "log-line";
+  const t    = document.createElement("span"); t.className = "log-time"; t.textContent = fmtTime(entry.time || new Date());
+  const m    = document.createElement("span");
+  let cls = "";
+  if (msg.includes("✓") || msg === "DONE" || msg.includes("DONE"))                                         cls = " success";
+  else if (msg.includes("✗") || msg.includes("ERROR") || msg.includes("FAILED"))                          cls = " error";
+  else if (msg.includes("🎨") || msg.includes("branding") || msg.includes("Branding") ||
+           msg.includes("overlay") || msg.includes("outro"))                                               cls = " brand";
+  else if (msg.startsWith("📡") || msg.startsWith("📰") || msg.startsWith("🤖") || msg.startsWith("📝")) cls = " rss";
+  else if (msg.startsWith("🚀") || msg.startsWith("✓ Script"))                                            cls = " info";
+  m.className = "log-msg" + cls; m.textContent = msg;
+  line.append(t, m); terminal.append(line); terminal.scrollTop = terminal.scrollHeight;
+}
+
+// ═══════════════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════════════
+function esc(s){ return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function fmtDate(d){ if(!d) return ""; return new Date(d).toLocaleDateString("en-US",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}); }
+function fmtTime(d){ return new Date(d).toLocaleTimeString("en-US",{hour12:false,hour:"2-digit",minute:"2-digit",second:"2-digit"}); }
+function statusLabel(s){ return {pending:"Pending...",running:"Running...",done:"Ready",failed:"Failed"}[s]||s; }
+
+// ═══════════════════════════════════════════════════════
+//  GLOBAL SERVER ACTIVITY STREAM (always on)
+// ═══════════════════════════════════════════════════════
+let activitySource = null;
+function appendActivity(entry) {
+  const term = document.getElementById("activityTerminal");
+  if (!term) return;
+  const line = document.createElement("div"); line.className = "log-line";
+  const t = document.createElement("span"); t.className = "log-time"; t.textContent = fmtTime(entry.time || new Date());
+  const src = document.createElement("span");
+  src.className = "log-msg info";
+  src.style.cssText = "color:#7aa8ff;margin-right:6px;flex:none";
+  src.textContent = `[${entry.source || "system"}]`;
+  const msg = entry.msg || "";
+  const m = document.createElement("span");
+  let cls = "";
+  if (msg.includes("✅") || msg.includes("✓") || msg.includes("DONE"))            cls = " success";
+  else if (msg.includes("✗") || msg.includes("ERROR") || msg.includes("FAILED") || msg.includes("⚠")) cls = " error";
+  else if (msg.includes("📤") || msg.includes("▶") || msg.includes("YouTube"))    cls = " info";
+  else if (msg.includes("🎨") || msg.includes("branding"))                        cls = " brand";
+  else if (msg.includes("📰") || msg.includes("⏰") || msg.includes("🧠"))        cls = " rss";
+  m.className = "log-msg" + cls; m.textContent = msg;
+  line.append(t, src, m); term.append(line);
+  // keep last ~500 lines
+  while (term.childElementCount > 500) term.removeChild(term.firstChild);
+  term.scrollTop = term.scrollHeight;
+}
+
+function connectActivityStream() {
+  const dot = document.getElementById("activityDot");
+  try {
+    activitySource = new EventSource("/api/logs/stream");
+    activitySource.onopen  = () => { if (dot) dot.style.background = "#4ade80"; };
+    activitySource.onmessage = (e) => { try { appendActivity(JSON.parse(e.data)); } catch {} };
+    activitySource.onerror = () => {
+      if (dot) dot.style.background = "#ff6b6b";
+      // EventSource auto-reconnects; just reflect state
+    };
+  } catch {}
+}
+
+init();
+connectActivityStream();
+</script>
+</body>
+</html>
