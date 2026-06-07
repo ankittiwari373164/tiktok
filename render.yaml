@@ -5,7 +5,7 @@ services:
   - type: web
     name: avatar-studio
     runtime: docker
-    plan: starter            # do NOT use "free" if you need 24/7 cron
+    plan: free            # do NOT use "free" if you need 24/7 cron
     autoDeploy: true
     healthCheckPath: /
     envVars:
