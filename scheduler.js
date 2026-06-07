@@ -50,63 +50,92 @@ async function usedKeysFor(clientId) {
   return keys;
 }
 
-// Run one scheduled video for a client (called when a slot fires).
-async function runScheduledVideo(clientId) {
+// ─── Global serial queue: only ONE run executes at a time ─────────────────────
+const queue = [];          // clientIds waiting to run
+let working = false;       // is a run currently in progress?
+
+// Called when a slot fires (cron) or "run now" is pressed. Enqueues the client.
+function runScheduledVideo(clientId) {
   if (!runBotAsync) return;
-  try {
-    const { data: row, error } = await supabase
-      .from("clients").select("*").eq("id", clientId).single();
-    if (error || !row) return;
-
-    const client = mapClient(row);  // includes avatarId, script, branding, youtube, etc.
-    if (!client) return;
-
-    if (!client.rssFeeds.length) { slog(`${client.name}: no RSS feeds, skipping`); return; }
-    if (!client.avatarId) { slog(`${client.name}: no Avatar ID set — skipping (set it in Edit client)`); return; }
-
-    slog(`${client.name}: picking a fresh article...`);
-    const used = await usedKeysFor(clientId);
-    const pick = await fetchUniqueScript(client.rssFeeds, client.name, used);
-
-    if (!pick) { slog(`${client.name}: no NEW article available right now — skipped (avoids duplicate)`); return; }
-    if (!pick.script || !pick.script.trim()) { slog(`${client.name}: Groq returned an empty script — skipped`); return; }
-
-    const articleLink  = pick.article.link || "";
-    const articleTitle = pick.article.title || "";
-    client.script = pick.script;
-
-    // Persist latest script on the client (keeps manual UI consistent)
-    try { await supabase.from("clients").update({ script: pick.script }).eq("id", clientId); } catch {}
-
-    const insert = {
-      client_id: client._id, client_name: client.name,
-      status: "running", started_at: new Date(),
-      log: [
-        { time: new Date(), msg: `⏰ Scheduled run for ${client.name}` },
-        { time: new Date(), msg: `📰 Article: "${articleTitle}"` },
-        { time: new Date(), msg: `✓ Unique article (not previously used)` },
-        { time: new Date(), msg: "🚀 Launching bot..." },
-      ],
-    };
-    // article_link/title are best-effort (columns may not exist on old schemas)
-    let vidData;
-    try {
-      const r = await supabase.from("videos")
-        .insert({ ...insert, article_link: articleLink, article_title: articleTitle })
-        .select().single();
-      if (r.error) throw r.error;
-      vidData = r.data;
-    } catch {
-      const r = await supabase.from("videos").insert(insert).select().single();
-      if (r.error) throw r.error;
-      vidData = r.data;
-    }
-
-    slog(`${client.name}: ✓ unique article picked → launching bot (auto-uploads to YouTube when done)`);
-    runBotAsync(client, vidData.id); // auto-uploads to YouTube inside _runBotAsync
-  } catch (e) {
-    slog(`run failed for ${clientId}: ${e.message}`);
+  if (queue.includes(clientId)) {
+    slog(`${clientId}: already in the queue — this slot skipped (no overlap)`);
+    return;
   }
+  queue.push(clientId);
+  if (working || queue.length > 1) {
+    slog(`${clientId}: queued (one run finishes before the next starts) — position ${queue.length}`);
+  }
+  drainQueue();
+}
+
+// Processes the queue strictly one at a time.
+async function drainQueue() {
+  if (working) return;          // a run is already going; it will pick up the next
+  working = true;
+  while (queue.length) {
+    const clientId = queue.shift();
+    try {
+      await processClient(clientId);   // waits for bot + branding + YouTube upload
+    } catch (e) {
+      slog(`run failed for ${clientId}: ${e.message}`);
+    }
+  }
+  working = false;
+}
+
+// Does the actual work for one client and RESOLVES only when fully done.
+async function processClient(clientId) {
+  const { data: row, error } = await supabase
+    .from("clients").select("*").eq("id", clientId).single();
+  if (error || !row) return;
+
+  const client = mapClient(row);  // includes avatarId, script, branding, youtube, etc.
+  if (!client) return;
+
+  if (!client.rssFeeds.length) { slog(`${client.name}: no RSS feeds, skipping`); return; }
+  if (!client.avatarId) { slog(`${client.name}: no Avatar ID set — skipping (set it in Edit client)`); return; }
+
+  slog(`${client.name}: picking a fresh article...`);
+  const used = await usedKeysFor(clientId);
+  const pick = await fetchUniqueScript(client.rssFeeds, client.name, used);
+
+  if (!pick) { slog(`${client.name}: no NEW article available right now — skipped (avoids duplicate)`); return; }
+  if (!pick.script || !pick.script.trim()) { slog(`${client.name}: Groq returned an empty script — skipped`); return; }
+
+  const articleLink  = pick.article.link || "";
+  const articleTitle = pick.article.title || "";
+  client.script = pick.script;
+
+  // Persist latest script on the client (keeps manual UI consistent)
+  try { await supabase.from("clients").update({ script: pick.script }).eq("id", clientId); } catch {}
+
+  const insert = {
+    client_id: client._id, client_name: client.name,
+    status: "running", started_at: new Date(),
+    log: [
+      { time: new Date(), msg: `⏰ Scheduled run for ${client.name}` },
+      { time: new Date(), msg: `📰 Article: "${articleTitle}"` },
+      { time: new Date(), msg: `✓ Unique article (not previously used)` },
+      { time: new Date(), msg: "🚀 Launching bot..." },
+    ],
+  };
+  // article_link/title are best-effort (columns may not exist on old schemas)
+  let vidData;
+  try {
+    const r = await supabase.from("videos")
+      .insert({ ...insert, article_link: articleLink, article_title: articleTitle })
+      .select().single();
+    if (r.error) throw r.error;
+    vidData = r.data;
+  } catch {
+    const r = await supabase.from("videos").insert(insert).select().single();
+    if (r.error) throw r.error;
+    vidData = r.data;
+  }
+
+  slog(`${client.name}: ▶ running now (others wait)...`);
+  await runBotAsync(client, vidData.id);  // resolves when done/failed + uploaded
+  slog(`${client.name}: ✓ finished${queue.length ? ` — next in queue: ${queue.length}` : ""}`);
 }
 
 // (Re)register cron tasks for a single client based on its schedule config.

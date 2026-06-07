@@ -4,8 +4,24 @@ const fs = require("fs");
 const path = require("path");
 
 async function loginWithCookies() {
+  // Cookies come from cookies.json on disk (local) OR the TIKTOK_COOKIES_JSON
+  // env var (Render, where the file isn't committed). File wins if present.
+  let rawCookies;
   const cookiesPath = path.resolve(__dirname, "../cookies.json");
-  const rawCookies = JSON.parse(fs.readFileSync(cookiesPath, "utf8"));
+  if (fs.existsSync(cookiesPath)) {
+    rawCookies = JSON.parse(fs.readFileSync(cookiesPath, "utf8"));
+  } else if (process.env.TIKTOK_COOKIES_JSON) {
+    try {
+      rawCookies = JSON.parse(process.env.TIKTOK_COOKIES_JSON);
+    } catch {
+      throw new Error("TIKTOK_COOKIES_JSON is set but is not valid JSON");
+    }
+  } else {
+    throw new Error("No TikTok cookies found: add cookies.json locally, or set TIKTOK_COOKIES_JSON on Render");
+  }
+  if (!Array.isArray(rawCookies) || !rawCookies.length) {
+    throw new Error("TikTok cookies are empty or not a JSON array");
+  }
 
   const cookies = rawCookies.map((c) => ({
     name: c.name,
