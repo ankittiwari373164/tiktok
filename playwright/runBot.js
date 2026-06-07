@@ -281,8 +281,15 @@ async function runBot(client, onLog = () => {}) {
   } catch (err) {
     log(`ERROR: ${err.message}`);
     try {
-      const errPath = path.join(__dirname, `../downloads/error-${Date.now()}.png`);
+      const title = await page.title().catch(() => "");
+      log(`Page title at failure: "${title}" — URL: ${page.url()}`);
+    } catch {}
+    try {
+      const fname = `error-${Date.now()}.png`;
+      const errPath = path.join(__dirname, `../downloads/${fname}`);
       await page.screenshot({ path: errPath, fullPage: true });
+      // /downloads is served statically — open this in a browser to SEE the page
+      log(`📸 Screenshot saved — view it at: /downloads/${fname}`);
     } catch {}
     await browser.close();
     throw err;
