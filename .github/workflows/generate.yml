@@ -1,0 +1,66 @@
+name: Generate & Publish Videos
+
+# Runs on a schedule (UTC!) + lets you trigger manually from the Actions tab.
+# 5 times/day, ~3h apart. These are UTC; pick times that suit your timezone.
+on:
+  workflow_dispatch:        # manual "Run workflow" button (great for testing)
+  schedule:
+    - cron: "30 3 * * *"    # 09:00 IST
+    - cron: "30 6 * * *"    # 12:00 IST
+    - cron: "30 9 * * *"    # 15:00 IST
+    - cron: "30 12 * * *"   # 18:00 IST
+    - cron: "30 15 * * *"   # 21:00 IST
+
+# Don't let two scheduled runs overlap (one browser at a time).
+concurrency:
+  group: video-generation
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      HEADLESS: "true"
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+      YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+      YT_REDIRECT_URI: ${{ secrets.YT_REDIRECT_URI }}
+      TIKTOK_COOKIES_JSON: ${{ secrets.TIKTOK_COOKIES_JSON }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install Playwright Chromium + system deps
+        run: npx playwright install --with-deps chromium
+
+      - name: Install FFmpeg & WireGuard
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg wireguard-tools
+
+      # ── Connect ProtonVPN (WireGuard) so TikTok sees an accepted IP ──
+      # Put your ProtonVPN WireGuard .conf contents in the secret PROTON_WG_CONF.
+      # (ProtonVPN → Downloads → WireGuard configuration → create for a free server.)
+      - name: Connect VPN
+        run: |
+          printf '%s' "${{ secrets.PROTON_WG_CONF }}" | sudo tee /etc/wireguard/wg0.conf > /dev/null
+          sudo chmod 600 /etc/wireguard/wg0.conf
+          sudo wg-quick up wg0
+          echo "VPN exit IP:"; curl -s https://api.ipify.org; echo
+
+      - name: Generate & publish
+        run: node runOnce.js
+
+      - name: Disconnect VPN
+        if: always()
+        run: sudo wg-quick down wg0 || true
