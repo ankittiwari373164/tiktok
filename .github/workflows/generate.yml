@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
-      HEADLESS: "true"
+      HEADLESS: "false"
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
       GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
@@ -45,8 +45,8 @@ jobs:
       - name: Install Playwright Chromium + system deps
         run: npx playwright install --with-deps chromium
 
-      - name: Install FFmpeg & WireGuard
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg wireguard-tools
+      - name: Install FFmpeg, WireGuard & Xvfb
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg wireguard-tools xvfb
 
       # ── Connect ProtonVPN (WireGuard) so TikTok sees an accepted IP ──
       # Put your ProtonVPN WireGuard .conf contents in the secret PROTON_WG_CONF.
@@ -58,8 +58,19 @@ jobs:
           sudo wg-quick up wg0
           echo "VPN exit IP:"; curl -s https://api.ipify.org; echo
 
+      # Run a REAL (headed) browser on a virtual display — defeats headless detection.
       - name: Generate & publish
-        run: node runOnce.js
+        run: xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" node runOnce.js
+
+      # Always upload any failure screenshots so you can SEE what TikTok served.
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-screenshots
+          path: downloads/*.png
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Disconnect VPN
         if: always()
