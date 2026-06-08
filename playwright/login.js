@@ -40,7 +40,11 @@ async function loginWithCookies() {
   }));
 
   const HEADLESS = process.env.HEADLESS ? process.env.HEADLESS === "true" : false;
-  const browser = await chromium.launch({
+
+  // Optional proxy (recommended on cloud hosts where TikTok blocks datacenter IPs).
+  // Set PROXY_SERVER (e.g. "http://host:port" or "socks5://host:port") and,
+  // if the proxy needs auth, PROXY_USERNAME / PROXY_PASSWORD.
+  const launchOpts = {
     headless: HEADLESS,
     args: [
       "--no-sandbox",
@@ -48,7 +52,16 @@ async function loginWithCookies() {
       "--disable-dev-shm-usage",
       "--disable-gpu",
     ],
-  });
+  };
+  if (process.env.PROXY_SERVER) {
+    launchOpts.proxy = {
+      server: process.env.PROXY_SERVER,
+      ...(process.env.PROXY_USERNAME ? { username: process.env.PROXY_USERNAME } : {}),
+      ...(process.env.PROXY_PASSWORD ? { password: process.env.PROXY_PASSWORD } : {}),
+    };
+    console.log(`✓ Using proxy: ${process.env.PROXY_SERVER}`);
+  }
+  const browser = await chromium.launch(launchOpts);
   const context = await browser.newContext();
 
   // ─── STEP 1: INJECT SESSION COOKIES ───────────────────────────
@@ -179,15 +192,51 @@ async function loginWithCookies() {
 
   await page.waitForTimeout(2000);
 
-  // ─── STEP 4: ACCEPT T&C ───────────────────────────────────────
+  // ─── STEP 4: ACCEPT T&C (button is disabled until terms scrolled / agreed) ──
   console.log("Checking for T&C accept button...");
   let tcAccepted = false;
   for (let attempt = 1; attempt <= 5; attempt++) {
     console.log(`T&C accept attempt ${attempt}/5...`);
     try {
-      const btn = page.getByRole("button", { name: /accept/i });
+      const btn = page.getByRole("button", { name: /accept|agree|continue|confirm/i }).first();
       await btn.waitFor({ timeout: 15000 });
-      await btn.click();
+
+      // The Accept button is often disabled until you scroll the terms to the
+      // bottom and/or tick an "I agree" checkbox. Do that, then wait for enable.
+      for (let i = 0; i < 10; i++) {
+        const enabled = await btn.evaluate(
+          (el) => !(el.disabled || el.getAttribute("aria-disabled") === "true")
+        ).catch(() => false);
+        if (enabled) break;
+
+        await page.evaluate(() => {
+          const handle = (root) => {
+            // scroll every scrollable container to the bottom
+            root.querySelectorAll("*").forEach((el) => {
+              try {
+                const s = getComputedStyle(el);
+                if ((s.overflowY === "auto" || s.overflowY === "scroll") &&
+                    el.scrollHeight > el.clientHeight + 4) {
+                  el.scrollTop = el.scrollHeight;
+                }
+              } catch {}
+            });
+            // tick any agreement checkbox
+            root.querySelectorAll('input[type="checkbox"], [role="checkbox"]').forEach((cb) => {
+              try {
+                const checked = cb.checked || cb.getAttribute("aria-checked") === "true";
+                if (!checked) cb.click();
+              } catch {}
+            });
+            // recurse into shadow roots
+            root.querySelectorAll("*").forEach((el) => { if (el.shadowRoot) handle(el.shadowRoot); });
+          };
+          handle(document);
+        });
+        await page.waitForTimeout(1500);
+      }
+
+      await btn.click({ timeout: 8000 }).catch(async () => { await btn.click({ force: true }); });
       console.log("✓ T&C accepted");
       await page.waitForTimeout(3000);
       tcAccepted = true;
